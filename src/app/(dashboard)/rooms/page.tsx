@@ -28,7 +28,7 @@ interface Room {
   capacity: number;
   type: string;
   departmentId: string;
-  department: { name: string; shortCode: string };
+  department: { name: string; shortCode: string } | null;
 }
 
 interface Department {
@@ -50,7 +50,7 @@ const columns: Column<Room>[] = [
   {
     key: "department",
     label: "Department",
-    render: (r) => r.department.shortCode,
+    render: (r) => r.department?.shortCode ?? "—",
     sortable: true,
   },
 ];

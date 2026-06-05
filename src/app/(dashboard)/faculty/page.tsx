@@ -26,7 +26,7 @@ interface Faculty {
   name: string;
   email: string;
   departmentId: string;
-  department: { name: string; shortCode: string };
+  department: { name: string; shortCode: string } | null;
 }
 
 interface Department {
@@ -38,7 +38,7 @@ interface Department {
 const columns: Column<Faculty>[] = [
   { key: "name", label: "Name", sortable: true },
   { key: "email", label: "Email", sortable: true },
-  { key: "department", label: "Department", render: (f) => f.department.shortCode, sortable: true },
+  { key: "department", label: "Department", render: (f) => f.department?.shortCode ?? "—", sortable: true },
 ];
 
 export default function FacultyPage() {

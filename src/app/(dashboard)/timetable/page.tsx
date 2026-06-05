@@ -20,8 +20,8 @@ interface Timetable {
   program: string;
   semesterName: string;
   wefDate: string;
-  department: { name: string; shortCode: string };
-  branch: { name: string; program: string };
+  department: { name: string; shortCode: string } | null;
+  branch: { name: string; program: string } | null;
   _count: { slots: number };
 }
 
@@ -77,7 +77,7 @@ export default function TimetablePage() {
   }
 
   async function handleDelete(item: Timetable) {
-    if (!confirm(`Delete timetable for ${item.branch.name} ${item.semesterName}?`)) return;
+    if (!confirm(`Delete timetable for ${item.branch?.name ?? "?"} ${item.semesterName}?`)) return;
     await fetch(`/api/timetables?id=${item.id}`, { method: "DELETE" });
     fetchData();
   }
@@ -117,7 +117,7 @@ export default function TimetablePage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="font-semibold">
-                    {tt.department.shortCode} — {tt.branch.name}
+                    {tt.department?.shortCode ?? "—"} — {tt.branch?.name ?? "—"}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {tt.semesterName} · {tt.academicTerm}
@@ -173,7 +173,7 @@ export default function TimetablePage() {
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>
-              {detail && `${detail.department.shortCode} — ${detail.branch.name} (${detail.semesterName})`}
+              {detail && `${detail.department?.shortCode ?? "—"} — ${detail.branch?.name ?? "—"} (${detail.semesterName})`}
             </DialogTitle>
             <DialogDescription>
               {detail && `${detail.academicTerm} · WEF ${new Date(detail.wefDate).toLocaleDateString()}`}

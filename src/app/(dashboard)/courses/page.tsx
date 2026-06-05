@@ -31,8 +31,8 @@ interface Course {
   semester: string;
   branchId: string;
   departmentId: string;
-  branch: { name: string; program: string };
-  department: { name: string; shortCode: string };
+  branch: { name: string; program: string } | null;
+  department: { name: string; shortCode: string } | null;
 }
 
 interface Branch {
@@ -54,7 +54,7 @@ const columns: Column<Course>[] = [
   { key: "credits", label: "Credits", sortable: true },
   { key: "type", label: "Type", sortable: true, render: (c) => <span className="capitalize">{c.type}</span> },
   { key: "semester", label: "Semester", sortable: true },
-  { key: "branch", label: "Branch", render: (c) => `${c.branch.name} (${c.branch.program})` },
+  { key: "branch", label: "Branch", render: (c) => c.branch ? `${c.branch.name} (${c.branch.program})` : "—" },
 ];
 
 export default function CoursesPage() {
