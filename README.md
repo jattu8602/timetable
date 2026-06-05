@@ -6,19 +6,25 @@ Built for the Anugat AI engineering assignment.
 
 ---
 
-## Tech Stack
+## Tech Stack: Spec vs Actual
 
-| Layer | Technology |
-|---|---|
-| Framework | Next.js 16 (App Router, Turbopack) |
-| Language | TypeScript (strict mode) |
-| Styling | Tailwind CSS v4 + shadcn/ui |
-| Font | Figtree (Samayak Design System) |
-| Database | MongoDB Atlas (via Prisma ORM v6) |
-| Cache / Queue | Upstash Redis + BullMQ |
-| Auth | NextAuth.js v5 (credentials provider, JWT strategy) |
-| Charts | Recharts |
-| Container | Docker + Docker Compose |
+| Layer | Specified (Document) | Implemented | Match |
+|---|---|---|---|
+| Framework | Next.js (App Router) | Next.js 16 (App Router, Turbopack) | ✅ |
+| Language | TypeScript (strict) | TypeScript (strict) | ✅ |
+| Styling | Tailwind + shadcn/ui | Tailwind v4 + shadcn/ui | ✅ |
+| Font | Figtree | Figtree (via `next/font`) | ✅ |
+| **Database** | **PostgreSQL** | **PostgreSQL (NeonDB serverless)** | ✅ |
+| ORM | Prisma | Prisma v6 | ✅ |
+| **Cache** | **Redis** | **Upstash Redis (REST)** | ✅ |
+| **Job Queue** | **BullMQ** | **❌ Not wired — upload runs synchronously** | ⚠️ |
+| Auth | NextAuth.js (credentials, JWT) | NextAuth.js v5 (credentials, JWT) | ✅ |
+| Charts | Recharts | Recharts | ✅ |
+| Container | Docker + Compose | Docker config present, using cloud services | ⚠️ |
+| RBAC | Role-based middleware | proxy.ts with role check + 403 | ✅ |
+| Correlation IDs | End-to-end tracing | Injected in proxy.ts | ✅ |
+| PDF OCR | — | OCR.space + OpenAI gpt-4o-mini | ✅ |
+| PDF text | — | pdf-parse (text PDFs) | ✅ |
 
 ---
 
@@ -48,14 +54,17 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Environment Variables
 
-Copy `.env.prod` to `.env` and fill in your credentials:
+Copy `.env` template:
 
 ```env
-DATABASE_URL=       # MongoDB Atlas connection string
-REDIS_URL=          # Upstash Redis REST endpoint
-UPSTASH_REDIS_TOKEN=# Upstash Redis token
-NEXTAUTH_SECRET=    # Any random string
-NEXTAUTH_URL=       # http://localhost:3000
+DATABASE_URL=           # NeonDB PostgreSQL connection string
+REDIS_URL=              # Upstash Redis REST endpoint
+UPSTASH_REDIS_TOKEN=    # Upstash Redis token
+OCR_SPACE_API_KEY=      # OCR.space API key
+OPENAI_API_KEY=         # OpenAI API key (for structuring OCR text)
+NEXTAUTH_SECRET=        # Any random string
+NEXTAUTH_URL=           # http://localhost:3000
+AUTH_SECRET=            # Same as NEXTAUTH_SECRET
 ```
 
 ### Seed the Database
@@ -71,96 +80,96 @@ npx tsx prisma/seed.ts
 
 ### 1. Dashboard / Analytics
 
-- [ ] Room Utilisation % — per room and department-wide
-- [ ] Probability of Finding an Empty Room — per time slot (I–IX)
-- [ ] Under-Running Courses — flagged where scheduled slots < credit-hour requirement
-- [ ] Average Empty Room-Hours per Day
-- [ ] Metrics react to live data changes (new import, add room, etc.)
-- [ ] Recharts visualisations (course-type pie chart, daily-slots bar chart)
+- [x] Room Utilisation % — per room and department-wide
+- [x] Probability of Finding an Empty Room — per time slot (I–IX)
+- [x] Under-Running Courses — flagged where scheduled slots < credit-hour requirement
+- [x] Average Empty Room-Hours per Day
+- [x] Metrics react to live data changes (new import, add room, etc.)
+- [x] Recharts visualisations (course-type pie chart, daily-slots bar chart)
 
 ### 2. Departments
 
-- [ ] Add department manually (name + unique short code)
+- [x] Add department manually (name + unique short code)
 - [ ] Bulk import from Excel/CSV with per-row validation
-- [ ] Searchable, paginated list
-- [ ] Edit and delete with confirmation
-- [ ] Delete warns if dependent records exist
+- [x] Searchable, paginated list
+- [x] Edit and delete with confirmation
+- [x] Delete warns if dependent records exist
 
 ### 3. Rooms
 
-- [ ] Add room manually (number, department, capacity, type)
-- [ ] Capacity required; missing capacity flagged
-- [ ] Room type displayed clearly (badge: classroom / lab / other)
-- [ ] Rooms unique within a department
+- [x] Add room manually (number, department, capacity, type)
+- [x] Capacity required; missing capacity flagged
+- [x] Room type displayed clearly (badge: classroom / lab / other)
+- [x] Rooms unique within a department
 - [ ] Bulk import from Excel/CSV
-- [ ] Search, edit, delete
-- [ ] Adding/removing a room updates dashboard analytics
+- [x] Search, edit, delete
+- [x] Adding/removing a room updates dashboard analytics
 
 ### 4. Courses / Subjects
 
-- [ ] Filter by branch and semester
-- [ ] Add course (code, name, credits, type)
-- [ ] Zero-credit subjects allowed but flagged
-- [ ] Credits stored as basis for under-running metric
+- [x] Filter by branch and semester
+- [x] Add course (code, name, credits, type)
+- [x] Zero-credit subjects allowed but flagged
+- [x] Credits stored as basis for under-running metric
 - [ ] Bulk import from Excel/CSV
-- [ ] Search, edit, delete
+- [x] Search, edit, delete
 
 ### 5. Faculty & Users
 
 - [ ] Import from Excel/CSV (name, email, role, department)
 - [ ] Preview parsed rows before committing
-- [ ] Handle duplicates gracefully (skip or merge)
-- [ ] Roles: admin, coordinator, professor, HOD, dean — with visual distinction
-- [ ] Searchable, paginated list
+- [x] Handle duplicates gracefully (skip or merge)
+- [x] Roles: admin, coordinator, professor, HOD, dean — with visual distinction
+- [x] Searchable, paginated list
 - [ ] Recoverable deletes (not instantly destructive)
 
 ### 6. Timetable PDF Ingestion
 
-- [ ] File upload area accepting BIT Mesra format PDF
+- [x] File upload area accepting BIT Mesra format PDF
 - [ ] Asynchronous processing (BullMQ queue)
 - [ ] Live progress feedback (queued → parsing → integrating → done)
-- [ ] Extract: department, branch, slots, courses, rooms, faculty
-- [ ] Create new entities; match existing ones (no duplicates)
+- [x] Extract: department, branch, slots, courses, rooms, faculty
+- [x] Create new entities; match existing ones (no duplicates)
 - [ ] Import summary: created, matched, unparsable rows with reasons
 - [ ] Analytics auto-recompute on completion
-- [ ] Format-aware parser — works for any department, not hardcoded to CSE
-- [ ] Graceful degradation on partial/malformed PDFs
+- [x] Format-aware parser — works for any department, not hardcoded to CSE
+- [x] Graceful degradation on partial/malformed PDFs
 - [ ] Pending/incomplete state for partial imports
 
 ### 7. Authentication & Authorization
 
-- [ ] NextAuth.js v5 with credentials provider
-- [ ] JWT session strategy (Edge Runtime compatible)
-- [ ] Demo login section on login page
-- [ ] RBAC middleware — route protection per role
-- [ ] 403 on unauthorized access
-- [ ] Correlation ID on every request for tracing
+- [x] NextAuth.js v5 with credentials provider
+- [x] JWT session strategy (Edge Runtime compatible)
+- [x] Demo login section on login page
+- [x] RBAC middleware — route protection per role
+- [x] 403 on unauthorized access
+- [x] Correlation ID on every request for tracing
 
 ### 8. API & Infrastructure
 
-- [ ] All CRUD endpoints (departments, rooms, courses, faculty, timetables)
-- [ ] `GET /api/health` — returns DB and Redis status
-- [ ] PDF upload endpoint with format-aware parsing
-- [ ] Pagination and search on list endpoints
-- [ ] Docker Compose (MongoDB / Redis / app services)
-- [ ] No mocked or hardcoded data
-- [ ] TypeScript strict mode throughout
+- [x] All CRUD endpoints (departments, rooms, courses, faculty, timetables)
+- [x] `GET /api/health` — returns DB and Redis status
+- [x] PDF upload endpoint with format-aware parsing
+- [x] Pagination and search on list endpoints
+- [x] Docker Compose (PostgreSQL / Redis / app services)
+- [x] No mocked or hardcoded data
+- [x] TypeScript strict mode throughout
 
 ### 9. Design System Alignment
 
-- [ ] Figtree typeface
-- [ ] Samayak brand gradient (#256199 → #3DA1FF)
-- [ ] Rounded geometry (radius: 0.75rem)
-- [ ] Soft-blue palette
-- [ ] Consistent button, card, and icon language
-- [ ] Responsive layout with sidebar + header
+- [x] Figtree typeface
+- [x] Samayak brand gradient (#256199 → #3DA1FF)
+- [x] Rounded geometry (radius: 0.75rem)
+- [x] Soft-blue palette
+- [x] Consistent button, card, and icon language
+- [x] Responsive layout with sidebar + header
 
 ### 10. Deployment
 
 - [ ] Deployed and reachable without configuration
-- [ ] Pre-seeded with CSE timetable data
-- [ ] Demo login credentials on login page
-- [ ] `.env.prod` template for Vercel deployment
+- [x] Pre-seeded with CSE timetable data
+- [x] Demo login credentials on login page
+- [x] `.env.prod` template for Vercel deployment
 
 ---
 
@@ -190,7 +199,7 @@ npx tsx prisma/seed.ts
 | GET | `/api/branches` | Branches list |
 | GET/DELETE | `/api/timetables` | Timetable list / delete |
 | GET | `/api/timetables/[id]` | Timetable detail with slots |
-| POST | `/api/timetables/upload` | PDF/TXT upload → parse → import |
+| POST | `/api/timetables/upload` | PDF/TXT upload → OCR → OpenAI → import |
 | GET | `/api/health` | DB + Redis health |
 | GET/POST | `/api/auth/[...nextauth]` | NextAuth v5 |
 | GET | `/api/users` | Users placeholder |
@@ -199,16 +208,16 @@ npx tsx prisma/seed.ts
 
 ## Seed Data
 
-The dataset is 13 BIT Mesra CSE timetable files (Spring 2026) parsed from embedded SQL INSERT statements:
+13 BIT Mesra CSE timetable files (Spring 2026) seeded into NeonDB:
 
 - **1 department** — CSE
-- **10 branches** — CS, AIML, MCA, M.Tech across semesters
-- **256 courses** — lecture, lab, tutorial, elective
-- **28 rooms** — lecture halls and labs
-- **23 timetables** — one per branch/section
-- **717 time slots** — individual period assignments
+- **5 branches** — CS, AIML, MCA, M.Tech
+- **141 courses** — lecture, lab, tutorial, elective
+- **15 rooms** — lecture halls and labs
+- **13 timetables** — one per branch/section
+- **411 time slots** — individual period assignments
 - **3 faculty** — mapped to courses
-- **1 admin user** — admin@samayak.com
+- **1 admin user** — admin@samayak.com / admin123
 
 ---
 
@@ -216,23 +225,34 @@ The dataset is 13 BIT Mesra CSE timetable files (Spring 2026) parsed from embedd
 
 | Decision | Rationale |
 |---|---|
-| MongoDB vs PostgreSQL | Switched from PostgreSQL to MongoDB Atlas per requirement; Prisma v6 supports both |
+| PostgreSQL (NeonDB) over MongoDB | Spec prescribes PostgreSQL with foreign keys; NeonDB is serverless Postgres |
 | JWT session strategy | Required for Edge Runtime middleware to verify auth without database queries |
-| Dynamic `import("crypto")` | Credentials provider uses SHA-256; dynamic import avoids Edge Runtime bundling errors |
-| Manual relation joins | Prisma MongoDB does not support `@relation` includes; API routes manually `find` + merge |
-| Lazy Redis connect | Avoids build-time connection errors when Redis is unavailable |
-| Proxy (middleware) | Next.js 16 renamed middleware → proxy; both auth guard and correlation-ID injection |
-| format-aware PDF parser | Parses SQL INSERT statements + ASCII grid; works for any department in BIT Mesra format |
+| Dynamic `import("crypto")` | Credentials provider uses SHA-256; avoids Edge Runtime bundling errors |
+| OCR.space + OpenAI instead of pure pdf-parse | Scanned PDFs need OCR; OpenAI gpt-4o-mini structures raw OCR text into clean timetable data |
+| pdfjs-dist legacy build | Legacy build avoids DOMMatrix dependency missing in Node.js; handles page rendering for OCR |
+| Upstash Redis (REST) over ioredis | Works in serverless/Edge; no TCP connection needed |
+| Proxy (middleware) | Next.js 16 renamed middleware → proxy; auth guard + correlation IDs |
+| Format-aware PDF parser | Parses SQL INSERT statements + ASCII grid; works for any BIT Mesra department |
+| No Docker for dev | Using cloud NeonDB + Upstash; Docker config kept for production reference |
+
+---
+
+## OCR Pipeline
+
+```
+PDF Upload
+  → pdf-parse (text extraction — free, instant)
+  → if no timetable text found:
+    → pdfjs-dist renders each page as PNG
+    → OCR.space API extracts text per page
+    → OpenAI gpt-4o-mini structures raw OCR into ParsedTimetable JSON
+  → splitTimetable creates courses, slots, rooms, faculty in DB
+  → response
+```
 
 ---
 
 ## Deployment
-
-### Docker (Production)
-
-```bash
-docker compose up --build
-```
 
 ### Vercel (Serverless)
 
@@ -241,12 +261,20 @@ docker compose up --build
 3. Build command: `npx prisma generate && next build`
 4. Deploy
 
+### Docker
+
+```bash
+docker compose up --build
+```
+
 ---
 
 ## Built With
 
 - Next.js 16 · TypeScript · Tailwind CSS v4 · shadcn/ui
-- Prisma v6 · MongoDB Atlas · Upstash Redis
-- NextAuth.js v5 · Recharts · BullMQ
+- Prisma v6 · PostgreSQL (NeonDB) · Upstash Redis
+- NextAuth.js v5 · Recharts
+- OCR.space · OpenAI gpt-4o-mini
+- pdfjs-dist · @napi-rs/canvas
 - Figtree · Lucide Icons
 - Docker · Docker Compose

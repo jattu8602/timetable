@@ -2,156 +2,229 @@ import { PrismaClient } from "@prisma/client";
 import * as fs from "fs";
 import * as path from "path";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
 
-interface FileMetadata {
-  department: string;
-  program: string;
-  branch: string;
-  semester: string;
-  wef_date: string;
-  institution: string;
-  academic_term: string;
-}
-
-interface CourseEntry {
-  course_code: string;
-  course_type: string;
-  course_name: string;
-  credits: string;
-  teacher: string;
-}
-
-interface SlotEntry {
-  day_of_week: string;
-  period_name: string;
-  time_range: string;
-  subject_details: string;
+interface FileData {
+  metadata: {
+    department: string;
+    program: string;
+    branch: string;
+    semester: string;
+    wef_date: string;
+    institution: string;
+    academic_term: string;
+  };
+  courses: {
+    code: string;
+    type: string;
+    name: string;
+    credits: number;
+    teacher: string;
+  }[];
+  slots: {
+    dayOfWeek: string;
+    periodName: string;
+    timeRange: string;
+    subjectDetails: string;
+  }[];
 }
 
 async function main() {
-  const dataDir = path.join(__dirname, "..", "data");
-  const files = fs.readdirSync(dataDir).filter((f) => f.endsWith(".txt")).sort();
-
   const existingDept = await prisma.department.findFirst({ where: { shortCode: "CSE" } });
   if (existingDept) {
     console.log("Database already seeded. Skipping.");
     return;
   }
 
+  const dataDir = path.join(__dirname, "..", "data");
+  const files = fs.readdirSync(dataDir).filter((f) => f.endsWith(".txt")).sort();
+
+  const allFiles: FileData[] = [];
+
   for (const fileName of files) {
-    const filePath = path.join(dataDir, fileName);
-    const content = fs.readFileSync(filePath, "utf-8");
-    console.log(`Processing ${fileName}...`);
-
-    const metadata = parseMetadata(content);
-
-    const dep = await prisma.department.upsert({
-      where: { shortCode: metadata.department },
-      update: {},
-      create: { name: metadata.department, shortCode: metadata.department },
-    });
-
-    let branch = await prisma.branch.findFirst({
-      where: { name: metadata.branch, program: metadata.program, departmentId: dep.id },
-    });
-    if (!branch) {
-      branch = await prisma.branch.create({
-        data: { name: metadata.branch, program: metadata.program, departmentId: dep.id },
-      });
-    }
-
+    const content = fs.readFileSync(path.join(dataDir, fileName), "utf-8");
+    const meta = parseMetadata(content);
     const courseEntries = parseCourses(content);
-    for (const entry of courseEntries) {
-      const existingCourse = await prisma.course.findFirst({
-        where: { code: entry.course_code, branchId: branch.id, semester: metadata.semester },
-      });
-      if (!existingCourse) {
-        await prisma.course.create({
-          data: {
-            code: entry.course_code,
-            name: entry.course_name,
-            credits: parseFloat(entry.credits) || 0,
-            type: entry.course_type.toLowerCase().includes("lab") ? "lab" : "lecture",
-            courseType: entry.course_type,
-            branchId: branch.id,
-            semester: metadata.semester,
-            departmentId: dep.id,
-          },
-        });
-      }
-
-      if (entry.teacher && entry.teacher !== "TBA") {
-        const emailPart = entry.teacher.toLowerCase().replace(/[^a-z]/g, ".");
-        const email = `${emailPart}@bitmesra.ac.in`;
-        await prisma.faculty.upsert({
-          where: { email },
-          update: { name: entry.teacher, departmentId: dep.id },
-          create: { name: entry.teacher, email, departmentId: dep.id },
-        });
-      }
-    }
-
     const slotEntries = parseSlots(content);
-    for (const s of slotEntries) {
-      const roomNumbers: string[] = [];
-      const roomMatch = s.subject_details.match(/\b\d{3}[A-Z]?\b/g);
-      if (roomMatch) roomNumbers.push(...roomMatch);
-      const labMatch = s.subject_details.match(/[Ll]ab\s*\d+/g);
-      if (labMatch) roomNumbers.push(...labMatch);
 
-      for (const num of roomNumbers) {
-        const existingRoom = await prisma.room.findFirst({
-          where: { number: num, departmentId: dep.id },
+    allFiles.push({
+      metadata: meta,
+      courses: courseEntries.map((c) => ({
+        code: c.course_code,
+        type: c.course_type,
+        name: c.course_name,
+        credits: parseFloat(c.credits) || 0,
+        teacher: c.teacher,
+      })),
+      slots: slotEntries.map((s) => ({
+        dayOfWeek: s.day_of_week,
+        periodName: s.period_name,
+        timeRange: s.time_range,
+        subjectDetails: s.subject_details,
+      })),
+    });
+
+    console.log(`${fileName}: ${courseEntries.length} courses, ${slotEntries.length} slots`);
+  }
+
+  console.log("\nSeeding database...");
+
+  const dep = await prisma.department.create({
+    data: { name: "CSE", shortCode: "CSE" },
+  });
+
+  const branchMap = new Map<string, string>();
+  const branchSet = new Set<string>();
+
+  for (const file of allFiles) {
+    const key = `${file.metadata.program}|${file.metadata.branch}`;
+    branchSet.add(key);
+  }
+
+  for (const key of branchSet) {
+    const [program, name] = key.split("|");
+    const branch = await prisma.branch.create({
+      data: { name, program, departmentId: dep.id },
+    });
+    branchMap.set(key, branch.id);
+  }
+
+  const createdRooms = new Set<string>();
+  const roomData: { number: string; name: string; capacity: number; type: "classroom" | "lab"; departmentId: string }[] = [];
+  const allFacultyData: { name: string; email: string; departmentId: string }[] = [];
+  const facultyEmailSet = new Set<string>();
+  const courseCreateData: { code: string; name: string; credits: number; type: string; courseType: string; branchId: string; semester: string; departmentId: string }[] = [];
+  const courseKeySet = new Set<string>();
+  const timetableFacultyLinks: { courseCode: string; branchId: string; semester: string; teacher: string }[] = [];
+
+  for (const file of allFiles) {
+    const branchKey = `${file.metadata.program}|${file.metadata.branch}`;
+    const branchId = branchMap.get(branchKey)!;
+
+    for (const c of file.courses) {
+      const courseKey = `${c.code}|${branchId}|${file.metadata.semester}`;
+      if (!courseKeySet.has(courseKey)) {
+        courseKeySet.add(courseKey);
+        courseCreateData.push({
+          code: c.code,
+          name: c.name,
+          credits: c.credits,
+          type: c.type.toLowerCase().includes("lab") ? "lab" : "lecture",
+          courseType: c.type,
+          branchId,
+          semester: file.metadata.semester,
+          departmentId: dep.id,
         });
-        if (!existingRoom) {
-          const type = num.toLowerCase().includes("lab") ? "lab" : "classroom";
-          await prisma.room.create({
-            data: { number: num, name: `Room ${num}`, capacity: 60, type, departmentId: dep.id },
-          });
+      }
+
+      if (c.teacher && c.teacher !== "TBA") {
+        timetableFacultyLinks.push({ courseCode: c.code, branchId, semester: file.metadata.semester, teacher: c.teacher });
+        const emailPart = c.teacher.toLowerCase().replace(/[^a-z]/g, ".");
+        const email = `${emailPart}@bitmesra.ac.in`;
+        if (!facultyEmailSet.has(email)) {
+          facultyEmailSet.add(email);
+          allFacultyData.push({ name: c.teacher, email, departmentId: dep.id });
         }
       }
     }
 
-    const slots = slotEntries.map((s) => ({
-      dayOfWeek: s.day_of_week,
-      periodName: s.period_name,
-      timeRange: s.time_range,
-      subjectDetails: s.subject_details,
-    }));
-
-    if (slots.length > 0) {
-      const wefDate = metadata.wef_date
-        ? new Date(metadata.wef_date.replace(/\./g, "-"))
-        : new Date();
-
-      const timetable = await prisma.timetable.create({
-        data: {
-          institution: metadata.institution,
-          academicTerm: metadata.academic_term,
-          departmentId: dep.id,
-          program: metadata.program,
-          branchId: branch.id,
-          semesterName: metadata.semester,
-          wefDate,
-        },
-      });
-
-      for (const slot of slots) {
-        await prisma.timeSlot.create({
-          data: {
-            timetableId: timetable.id,
-            dayOfWeek: slot.dayOfWeek,
-            periodName: slot.periodName,
-            timeRange: slot.timeRange,
-            subjectDetails: slot.subjectDetails,
-          },
-        });
+    for (const s of file.slots) {
+      const nums = [...(s.subjectDetails.match(/\b\d{3}[A-Z]?\b/g) ?? []), ...(s.subjectDetails.match(/[Ll]ab\s*\d+/g) ?? [])];
+      for (const num of nums) {
+        const roomKey = `${num}|${dep.id}`;
+        if (!createdRooms.has(roomKey)) {
+          createdRooms.add(roomKey);
+          const type = num.toLowerCase().includes("lab") ? "lab" as const : "classroom" as const;
+          roomData.push({ number: num, name: `Room ${num}`, capacity: 60, type, departmentId: dep.id });
+        }
       }
     }
-
-    console.log(`  → ${courseEntries.length} courses, ${slots.length} slots`);
   }
+
+  if (roomData.length > 0) {
+    await prisma.room.createMany({ data: roomData });
+    console.log(`  ${roomData.length} rooms`);
+  }
+
+  if (courseCreateData.length > 0) {
+    await prisma.course.createMany({ data: courseCreateData });
+    console.log(`  ${courseCreateData.length} courses`);
+  }
+
+  if (allFacultyData.length > 0) {
+    await prisma.faculty.createMany({ data: allFacultyData });
+    console.log(`  ${allFacultyData.length} faculty`);
+  }
+
+  const allCourses = await prisma.course.findMany({ where: { departmentId: dep.id } });
+  const courseIndex = new Map<string, string>();
+  for (const c of allCourses) courseIndex.set(`${c.code}|${c.branchId}|${c.semester}`, c.id);
+
+  const facultyEmailToId = new Map<string, string>();
+  const allFaculty = await prisma.faculty.findMany({ where: { departmentId: dep.id } });
+  for (const f of allFaculty) facultyEmailToId.set(f.email, f.id);
+
+  const cfSet = new Set<string>();
+  const cfData: { courseId: string; facultyId: string }[] = [];
+  for (const link of timetableFacultyLinks) {
+    const emailPart = link.teacher.toLowerCase().replace(/[^a-z]/g, ".");
+    const email = `${emailPart}@bitmesra.ac.in`;
+    const facultyId = facultyEmailToId.get(email);
+    if (!facultyId) continue;
+
+    const courseId = courseIndex.get(`${link.courseCode}|${link.branchId}|${link.semester}`);
+    if (courseId) {
+      const cfKey = `${courseId}|${facultyId}`;
+      if (!cfSet.has(cfKey)) {
+        cfSet.add(cfKey);
+        cfData.push({ courseId, facultyId });
+      }
+    }
+  }
+
+  if (cfData.length > 0) {
+    await prisma.courseFaculty.createMany({ data: cfData });
+    console.log(`  ${cfData.length} course-faculty links`);
+  }
+
+  let totalTimetables = 0;
+  let totalSlots = 0;
+
+  for (const file of allFiles) {
+    const branchKey = `${file.metadata.program}|${file.metadata.branch}`;
+    const branchId = branchMap.get(branchKey)!;
+
+    const wefDate = file.metadata.wef_date ? new Date(file.metadata.wef_date.replace(/\./g, "-")) : new Date();
+
+    const tt = await prisma.timetable.create({
+      data: {
+        institution: file.metadata.institution,
+        academicTerm: file.metadata.academic_term,
+        departmentId: dep.id,
+        program: file.metadata.program,
+        branchId,
+        semesterName: file.metadata.semester,
+        wefDate,
+      },
+    });
+    totalTimetables++;
+
+    if (file.slots.length > 0) {
+      await prisma.timeSlot.createMany({
+        data: file.slots.map((s) => ({
+          timetableId: tt.id,
+          dayOfWeek: s.dayOfWeek,
+          periodName: s.periodName,
+          timeRange: s.timeRange,
+          subjectDetails: s.subjectDetails,
+        })),
+      });
+      totalSlots += file.slots.length;
+    }
+  }
+
+  console.log(`  ${totalTimetables} timetables`);
+  console.log(`  ${totalSlots} slots`);
 
   const adminEmail = "admin@samayak.com";
   const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
@@ -177,7 +250,7 @@ async function main() {
   console.log("\nSeed complete:", counts);
 }
 
-function parseMetadata(content: string): FileMetadata {
+function parseMetadata(content: string) {
   const dep = match(content, /Department\s*:\s*(.+)/);
   const program = match(content, /Program\s*:\s*(.+)/);
   const branch = match(content, /Branch\s*:\s*(.+)/);
@@ -195,8 +268,8 @@ function parseMetadata(content: string): FileMetadata {
   };
 }
 
-function parseCourses(content: string): CourseEntry[] {
-  const entries: CourseEntry[] = [];
+function parseCourses(content: string) {
+  const entries: { course_code: string; course_type: string; course_name: string; credits: string; teacher: string }[] = [];
   const regex = /INSERT\s+INTO\s+courses[\s\S]*?VALUES\s*\((.+?)\)\s*;/gi;
   let m;
   while ((m = regex.exec(content)) !== null) {
@@ -214,8 +287,8 @@ function parseCourses(content: string): CourseEntry[] {
   return entries;
 }
 
-function parseSlots(content: string): SlotEntry[] {
-  const entries: SlotEntry[] = [];
+function parseSlots(content: string) {
+  const entries: { day_of_week: string; period_name: string; time_range: string; subject_details: string }[] = [];
   const regex = /INSERT\s+INTO\s+timetable_slots[\s\S]*?VALUES\s*\((.+?)\)\s*;/gi;
   let m;
   while ((m = regex.exec(content)) !== null) {
@@ -263,8 +336,5 @@ function clean(s: string): string {
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
+  .catch((e) => { console.error(e); process.exit(1); })
   .finally(() => prisma.$disconnect());
