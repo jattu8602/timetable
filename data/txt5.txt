@@ -1,0 +1,153 @@
+================================================================================
+BIRLA INSTITUTE OF TECHNOLOGY MESRA, RANCHI
+SPRING 2026 - STUDENT TIME TABLE (Effective from 08.01.2026)
+================================================================================
+
+METADATA:
+--------------------------------------------------------------------------------
+Department : CSE
+Program    : B.Tech
+Branch     : AIML
+Semester   : VI
+W.E.F Date : 08.01.2026
+Academic   : SPRING 2026
+--------------------------------------------------------------------------------
+
+TIMETABLE GRID:
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+|    Days    |        I         |        II        |       III        |        IV        |        V         |    LUNCH    |        VI        |       VII        |       VIII       |        IX        |
+|            |   08:00-08:50    |   09:00-09:50    |   10:00-10:50    |   11:00-11:50    |   12:00-12:50    | 12:50-13:30 |   13:30-14:20    |   14:30-15:20    |   15:30-16:20    |   16:30-17:20    |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+| Monday     |                                                                                          | LUNCH-BREAK | IR / DM (G2 / 213) |                                                      |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+| Tuesday    |      OE III      |              DL Lab BT AIML VI (ILF)[]               |                  | LUNCH-BREAK |    Col / 216A    |                 MT133 CS - II 216 A                  |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+| Wednesday  |                                                                                          | LUNCH-BREAK |    Col / 216A    |    DL (216 A)    |   MAI (216 A)    |   USL (216 A)    |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+| Thursday   |      OE III      |                   USL Lab (Lab 4)                    |     IR (213)     | LUNCH-BREAK |     DM (213)     |   USL (216 A)    |    DL (216 A)    |   MAI (216 A)    |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+| Friday     |                                                      |     IR (213)     |      OE III      | LUNCH-BREAK |     DM (213)     |    DL (216 A)    |   MAI (216 A)    |   USL (216 A)    |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+
+COURSE LIST DETAILS:
+Course Code     | Course Type     | Course Name                                                  | Credit   | Teacher                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------
+AI303           | Core            | UnSupervised Learning (USL)                                  | 3        | Dr. Subrajeet Mohapatra                 
+AI305           | Core            | Deep Learning (DL)                                           | 3        | Dr. Monu Bhagat                         
+AI307           | Core            | Modern AI (MAI)                                              | 3        | Dr. Satish Chander                      
+AI317           | PE III          | Information Retrieval (IR)                                   | 3        | Prof. Abhijit Mustafi                   
+AI321           | PE III          | Data Mining                                                  | 3        | Dr. Saikat Chakraborty                  
+MT204           | HSS             | Constitution of India (Col)                                  | NC       | Dr. R. N. Bhagat (Management Department)
+MT133           | HSS             | Communications Skills II (CS-II)                             | 1.5      | Jyoti Kumari (Humanities and Social Sciences Department)
+AI304           | Core            | UnSupervised Learning Lab (USL Lab)                          | 1.5      | Dr. Subrajeet Mohapatra & Dr. Shruti Garg
+AI306           | Core            | Deep Learning Lab (DL Lab)                                   | 1.5      | Dr. Monu Bhagat & Prof. V. Bhattacharya 
+-               | OE              | OEIII/ MOOC                                                  | 3        | -                                       
+-               | Proj.           | Summer Training                                              | 2        | -                                       
+
+
+SIGNATURES & APPROVALS:
+- Central Coordinator: Prem Prakash (06.01.2026)
+- Department Coordinator: Shamar (06.01.2026)
+- HoD: Signed
+- Dean: Dr. Gautam Sarkhel (07.01.2026)
+
+
+DATA SCHEMA DEFINITION:
+--------------------------------------------------------------------------------
+Attributes, Row, and Column mapping:
+1. timetable_metadata:
+   - Rows: 1 per Timetable (ID: 5)
+   - Columns: timetable_id, institution, academic_term, department, program, branch, semester, wef_date
+2. courses:
+   - Rows: 11 course categories
+   - Columns: course_code, timetable_id, course_type, course_name, credits, teacher
+3. timetable_slots:
+   - Columns: slot_id, timetable_id, day_of_week, period_name, time_range, subject_details
+--------------------------------------------------------------------------------
+
+SQL DATABASE SCRIPTS:
+--------------------------------------------------------------------------------
+-- TIMETABLE DATABASE SCHEMA PROPOSAL
+-- To create the backend structures for storing and querying timetable data.
+
+CREATE TABLE IF NOT EXISTS timetable_metadata (
+    timetable_id INT PRIMARY KEY,
+    institution VARCHAR(255),
+    academic_term VARCHAR(50),
+    department VARCHAR(50),
+    program VARCHAR(50),
+    branch VARCHAR(50),
+    semester VARCHAR(50),
+    wef_date DATE
+);
+
+CREATE TABLE IF NOT EXISTS courses (
+    course_code VARCHAR(20),
+    timetable_id INT,
+    course_type VARCHAR(50),
+    course_name VARCHAR(255),
+    credits VARCHAR(10),
+    teacher VARCHAR(255),
+    PRIMARY KEY (course_code, timetable_id),
+    FOREIGN KEY (timetable_id) REFERENCES timetable_metadata(timetable_id)
+);
+
+CREATE TABLE IF NOT EXISTS timetable_slots (
+    slot_id INT AUTO_INCREMENT PRIMARY KEY,
+    timetable_id INT,
+    day_of_week VARCHAR(15),
+    period_name VARCHAR(5),
+    time_range VARCHAR(30),
+    subject_details VARCHAR(255),
+    FOREIGN KEY (timetable_id) REFERENCES timetable_metadata(timetable_id)
+);
+
+
+-- SQL INSERT STATEMENTS FOR THIS TIMETABLE
+INSERT INTO timetable_metadata (timetable_id, institution, academic_term, department, program, branch, semester, wef_date)
+VALUES (5, 'BIRLA INSTITUTE OF TECHNOLOGY MESRA, RANCHI', 'SPRING 2026', 'CSE', 'B.Tech', 'AIML', 'VI', '2026-01-08');
+
+-- Course Details Inserts
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('AI303', 5, 'Core', 'UnSupervised Learning (USL)', '3', 'Dr. Subrajeet Mohapatra');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('AI305', 5, 'Core', 'Deep Learning (DL)', '3', 'Dr. Monu Bhagat');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('AI307', 5, 'Core', 'Modern AI (MAI)', '3', 'Dr. Satish Chander');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('AI317', 5, 'PE III', 'Information Retrieval (IR)', '3', 'Prof. Abhijit Mustafi');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('AI321', 5, 'PE III', 'Data Mining', '3', 'Dr. Saikat Chakraborty');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('MT204', 5, 'HSS', 'Constitution of India (Col)', 'NC', 'Dr. R. N. Bhagat (Management Department)');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('MT133', 5, 'HSS', 'Communications Skills II (CS-II)', '1.5', 'Jyoti Kumari (Humanities and Social Sciences Department)');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('AI304', 5, 'Core', 'UnSupervised Learning Lab (USL Lab)', '1.5', 'Dr. Subrajeet Mohapatra & Dr. Shruti Garg');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('AI306', 5, 'Core', 'Deep Learning Lab (DL Lab)', '1.5', 'Dr. Monu Bhagat & Prof. V. Bhattacharya');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('-', 5, 'OE', 'OEIII/ MOOC', '3', '-');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('-', 5, 'Proj.', 'Summer Training', '2', '-');
+
+-- Timetable Slots Inserts
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Monday', 'VI', '13:30-14:20', 'IR / DM (G2 / 213)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Tuesday', 'I', '08:00-08:50', 'OE III');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Tuesday', 'II', '09:00-09:50', 'DL Lab BT AIML VI (ILF)[]');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Tuesday', 'III', '10:00-10:50', 'DL Lab BT AIML VI (ILF)[]');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Tuesday', 'IV', '11:00-11:50', 'DL Lab BT AIML VI (ILF)[]');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Tuesday', 'VI', '13:30-14:20', 'Col / 216A');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Tuesday', 'VII', '14:30-15:20', 'MT133 CS - II 216 A');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Tuesday', 'VIII', '15:30-16:20', 'MT133 CS - II 216 A');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Tuesday', 'IX', '16:30-17:20', 'MT133 CS - II 216 A');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Wednesday', 'VI', '13:30-14:20', 'Col / 216A');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Wednesday', 'VII', '14:30-15:20', 'DL (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Wednesday', 'VIII', '15:30-16:20', 'MAI (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Wednesday', 'IX', '16:30-17:20', 'USL (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Thursday', 'I', '08:00-08:50', 'OE III');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Thursday', 'II', '09:00-09:50', 'USL Lab (Lab 4)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Thursday', 'III', '10:00-10:50', 'USL Lab (Lab 4)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Thursday', 'IV', '11:00-11:50', 'USL Lab (Lab 4)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Thursday', 'V', '12:00-12:50', 'IR (213)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Thursday', 'VI', '13:30-14:20', 'DM (213)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Thursday', 'VII', '14:30-15:20', 'USL (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Thursday', 'VIII', '15:30-16:20', 'DL (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Thursday', 'IX', '16:30-17:20', 'MAI (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Friday', 'IV', '11:00-11:50', 'IR (213)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Friday', 'V', '12:00-12:50', 'OE III');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Friday', 'VI', '13:30-14:20', 'DM (213)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Friday', 'VII', '14:30-15:20', 'DL (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Friday', 'VIII', '15:30-16:20', 'MAI (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (5, 'Friday', 'IX', '16:30-17:20', 'USL (216 A)');
+
+--------------------------------------------------------------------------------

@@ -1,0 +1,163 @@
+================================================================================
+BIRLA INSTITUTE OF TECHNOLOGY MESRA, RANCHI
+SPRING 2026 - STUDENT TIME TABLE (Effective from 08.01.2026)
+================================================================================
+
+METADATA:
+--------------------------------------------------------------------------------
+Department : CSE
+Program    : MCA
+Branch     : MCA
+Semester   : II
+W.E.F Date : 08.01.2026
+Academic   : SPRING 2026
+--------------------------------------------------------------------------------
+
+TIMETABLE GRID:
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+|    Days    |        I         |        II        |       III        |        IV        |        V         |    LUNCH    |        VI        |       VII        |       VIII       |        IX        |
+|            |   08:00-08:50    |   09:00-09:50    |   10:00-10:50    |   11:00-11:50    |   12:00-12:50    | 12:50-13:30 |   13:30-14:20    |   14:30-15:20    |   15:30-16:20    |   16:30-17:20    |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+| Monday     |                                                                                          | LUNCH-BREAK |  DMT (216 A) /   |    DCCN (214)    |    ToC (214)     |    AoA (214)     |
+|            |                                                                                          |             |    MAI (214)     |                  |                  |                  |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+| Tuesday    |                  |                            DCCN Lab (Lab 4)                            | LUNCH-BREAK |    MAI (213)     |     SE (214)     |    AoA (214)     |    FMOB (214)    |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+| Wednesday  |                  |                             ITT&T (Lab 4)                              | LUNCH-BREAK |    DCCN (214)    |    ToC (214)     |    AoA (214)     |    DMT (214)     |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+| Thursday   |                  |    ToC (214)     |    DCCN (214)    |     SE (214)     |    FMOB (214)    | LUNCH-BREAK |                            SE Lab (Lab 4 )                             |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+| Friday     |                  |    MAI (214)     |    FMOB (214)    |     SE (214)     |    DMT (213)     | LUNCH-BREAK |                             CS - II (219)                              |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+
+COURSE LIST DETAILS:
+Course Code     | Course Type     | Course Name                                                  | Credit   | Teacher                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------
+CA413           | Core            | Data Communication and Computer Networks (DCCN)              | 3        | Dr. Sumit Srivastava                    
+CA415           | Core            | Software Engineering Principles (SEP)                        | 3        | Dr. S. P. Singh                         
+CA417           | Core            | Theory of Computation (ToC)                                  | 3        | Dr. Supreeti Kamilya                    
+CA419           | Core            | Analysis of Algorithms (AoA)                                 | 3        | Dr. K. Rajnish                          
+CA441           | Elective        | Data Mining Techniques (DMT)                                 | 3        | Dr. Debjani Mustafi                     
+CA435           | Elective        | Modern AI (MAI)                                              | 3        | Dr. Sudip Kumar Sahana                  
+MT114           | HSS             | Fundamentals of Management & Organization Behaviour (FMOB))  | 3        | Department of Management                
+CA414           | Core            | Data Communication and Computer Networks Lab (DCCN Lab)      | 1.5      | Dr. Sumit Srivastava & Dr. K. K. Senapati
+CA416           | Core            | Software Engineering Lab (SE Lab)                            | 1.5      | Dr. S. P. Singh & Mr. Kalyan Samanta    
+CA422           | Core            | IT Tools and Techniques Lab                                  | 1.5      | Dr. Subrajeet Mohapatra & Dr. Lopamudra Hota
+HS24133         | HSS             | Communication Skills - II                                    | 1.5      | Jyoti Kumari (Humanities and Social Sciences Department)
+
+
+SIGNATURES & APPROVALS:
+- Central Coordinator: Prem Prakash (06.01.2026)
+- Department Coordinator: Shamar (06.01.2026)
+- HoD: Signed
+- Dean: Dr. Sandeep Singh Solanki (06.01.2026)
+
+
+DATA SCHEMA DEFINITION:
+--------------------------------------------------------------------------------
+Attributes, Row, and Column mapping:
+1. timetable_metadata:
+   - Rows: 1 per Timetable (ID: 11)
+   - Columns: timetable_id, institution, academic_term, department, program, branch, semester, wef_date
+2. courses:
+   - Rows: 11 course categories
+   - Columns: course_code, timetable_id, course_type, course_name, credits, teacher
+3. timetable_slots:
+   - Columns: slot_id, timetable_id, day_of_week, period_name, time_range, subject_details
+--------------------------------------------------------------------------------
+
+SQL DATABASE SCRIPTS:
+--------------------------------------------------------------------------------
+-- TIMETABLE DATABASE SCHEMA PROPOSAL
+-- To create the backend structures for storing and querying timetable data.
+
+CREATE TABLE IF NOT EXISTS timetable_metadata (
+    timetable_id INT PRIMARY KEY,
+    institution VARCHAR(255),
+    academic_term VARCHAR(50),
+    department VARCHAR(50),
+    program VARCHAR(50),
+    branch VARCHAR(50),
+    semester VARCHAR(50),
+    wef_date DATE
+);
+
+CREATE TABLE IF NOT EXISTS courses (
+    course_code VARCHAR(20),
+    timetable_id INT,
+    course_type VARCHAR(50),
+    course_name VARCHAR(255),
+    credits VARCHAR(10),
+    teacher VARCHAR(255),
+    PRIMARY KEY (course_code, timetable_id),
+    FOREIGN KEY (timetable_id) REFERENCES timetable_metadata(timetable_id)
+);
+
+CREATE TABLE IF NOT EXISTS timetable_slots (
+    slot_id INT AUTO_INCREMENT PRIMARY KEY,
+    timetable_id INT,
+    day_of_week VARCHAR(15),
+    period_name VARCHAR(5),
+    time_range VARCHAR(30),
+    subject_details VARCHAR(255),
+    FOREIGN KEY (timetable_id) REFERENCES timetable_metadata(timetable_id)
+);
+
+
+-- SQL INSERT STATEMENTS FOR THIS TIMETABLE
+INSERT INTO timetable_metadata (timetable_id, institution, academic_term, department, program, branch, semester, wef_date)
+VALUES (11, 'BIRLA INSTITUTE OF TECHNOLOGY MESRA, RANCHI', 'SPRING 2026', 'CSE', 'MCA', 'MCA', 'II', '2026-01-08');
+
+-- Course Details Inserts
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('CA413', 11, 'Core', 'Data Communication and Computer Networks (DCCN)', '3', 'Dr. Sumit Srivastava');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('CA415', 11, 'Core', 'Software Engineering Principles (SEP)', '3', 'Dr. S. P. Singh');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('CA417', 11, 'Core', 'Theory of Computation (ToC)', '3', 'Dr. Supreeti Kamilya');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('CA419', 11, 'Core', 'Analysis of Algorithms (AoA)', '3', 'Dr. K. Rajnish');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('CA441', 11, 'Elective', 'Data Mining Techniques (DMT)', '3', 'Dr. Debjani Mustafi');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('CA435', 11, 'Elective', 'Modern AI (MAI)', '3', 'Dr. Sudip Kumar Sahana');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('MT114', 11, 'HSS', 'Fundamentals of Management & Organization Behaviour (FMOB))', '3', 'Department of Management');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('CA414', 11, 'Core', 'Data Communication and Computer Networks Lab (DCCN Lab)', '1.5', 'Dr. Sumit Srivastava & Dr. K. K. Senapati');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('CA416', 11, 'Core', 'Software Engineering Lab (SE Lab)', '1.5', 'Dr. S. P. Singh & Mr. Kalyan Samanta');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('CA422', 11, 'Core', 'IT Tools and Techniques Lab', '1.5', 'Dr. Subrajeet Mohapatra & Dr. Lopamudra Hota');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('HS24133', 11, 'HSS', 'Communication Skills - II', '1.5', 'Jyoti Kumari (Humanities and Social Sciences Department)');
+
+-- Timetable Slots Inserts
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Monday', 'VI', '13:30-14:20', 'DMT (216 A) / MAI (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Monday', 'VII', '14:30-15:20', 'DCCN (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Monday', 'VIII', '15:30-16:20', 'ToC (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Monday', 'IX', '16:30-17:20', 'AoA (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Tuesday', 'II', '09:00-09:50', 'DCCN Lab (Lab 4)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Tuesday', 'III', '10:00-10:50', 'DCCN Lab (Lab 4)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Tuesday', 'IV', '11:00-11:50', 'DCCN Lab (Lab 4)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Tuesday', 'V', '12:00-12:50', 'DCCN Lab (Lab 4)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Tuesday', 'VI', '13:30-14:20', 'MAI (213)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Tuesday', 'VII', '14:30-15:20', 'SE (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Tuesday', 'VIII', '15:30-16:20', 'ToC (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Tuesday', 'VIII', '15:30-16:20', 'AoA (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Tuesday', 'IX', '16:30-17:20', 'FMOB (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Wednesday', 'II', '09:00-09:50', 'ITT&T (Lab 4)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Wednesday', 'III', '10:00-10:50', 'ITT&T (Lab 4)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Wednesday', 'IV', '11:00-11:50', 'ITT&T (Lab 4)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Wednesday', 'V', '12:00-12:50', 'ITT&T (Lab 4)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Wednesday', 'VI', '13:30-14:20', 'DCCN (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Wednesday', 'VII', '14:30-15:20', 'ToC (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Wednesday', 'VIII', '15:30-16:20', 'AoA (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Wednesday', 'IX', '16:30-17:20', 'DMT (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Thursday', 'II', '09:00-09:50', 'ToC (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Thursday', 'III', '10:00-10:50', 'DCCN (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Thursday', 'IV', '11:00-11:50', 'SE (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Thursday', 'V', '12:00-12:50', 'FMOB (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Thursday', 'VI', '13:30-14:20', 'SE Lab (Lab 4 )');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Thursday', 'VII', '14:30-15:20', 'SE Lab (Lab 4 )');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Thursday', 'VIII', '15:30-16:20', 'SE Lab (Lab 4 )');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Thursday', 'IX', '16:30-17:20', 'SE Lab (Lab 4 )');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Friday', 'II', '09:00-09:50', 'MAI (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Friday', 'III', '10:00-10:50', 'FMOB (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Friday', 'IV', '11:00-11:50', 'SE (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Friday', 'V', '12:00-12:50', 'DMT (213)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Friday', 'VI', '13:30-14:20', 'CS - II (219)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Friday', 'VII', '14:30-15:20', 'CS - II (219)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Friday', 'VIII', '15:30-16:20', 'CS - II (219)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (11, 'Friday', 'IX', '16:30-17:20', 'CS - II (219)');
+
+--------------------------------------------------------------------------------

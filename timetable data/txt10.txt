@@ -1,0 +1,163 @@
+================================================================================
+BIRLA INSTITUTE OF TECHNOLOGY MESRA, RANCHI
+SPRING 2026 - STUDENT TIME TABLE (Effective from 08.01.2026)
+================================================================================
+
+METADATA:
+--------------------------------------------------------------------------------
+Department : CSE
+Program    : B.Tech
+Branch     : AIML
+Semester   : IV
+W.E.F Date : 08.01.2026
+Academic   : SPRING 2026
+--------------------------------------------------------------------------------
+
+TIMETABLE GRID:
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+|    Days    |        I         |        II        |       III        |        IV        |        V         |    LUNCH    |        VI        |       VII        |       VIII       |        IX        |
+|            |   08:00-08:50    |   09:00-09:50    |   10:00-10:50    |   11:00-11:50    |   12:00-12:50    | 12:50-13:30 |   13:30-14:20    |   14:30-15:20    |   15:30-16:20    |   16:30-17:20    |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+| Monday     |      OE - I      |     IAI (G2)     |                   DBMS Lab (Lab 1)                   | LUNCH-BREAK |                  |   DAA (216 A)    |   DBMS (216 A)   |    OS (216 A)    |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+| Tuesday    |                                    |    OS (216 A)    |   IAI (216 A)    |   DAA (216 A)    | LUNCH-BREAK |         IKS (Online Mode)          |      NCC/NSS/ PT & Games/ CA/      |
+|            |                                    |                  |                  |                  |             |                                    |               ES-235               |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+| Wednesday  |      OE - I      |                              AP Lab (ILF)                              | LUNCH-BREAK |                                                                        |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+| Thursday   |                  |    OS (216 A)    |   DBMS (216 A)   |   DBMS (216 A)   |                  | LUNCH-BREAK |  IAI (T) (214)   |     NM (214)     |               NM Lab               |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+| Friday     |      OE - I      |    NM (216 A)    |   IAI (216 A)    |   DAA (216 A)    |                  | LUNCH-BREAK |                            S&KP Lab (Lab 4)                            |
++------------+------------------+------------------+------------------+------------------+------------------+-------------+------------------+------------------+------------------+------------------+
+
+COURSE LIST DETAILS:
+Course Code     | Course Type     | Course Name                                                  | Credit   | Teacher                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------
+CS24211         | Core            | Data Base Management System                                  | 3        | Dr. V. K. Jha                           
+CS24213         | Core            | Design and Analysis of Algorithms                            | 3        | Dr. Komal Naaz                          
+CS24215         | Core            | Operating Systems                                            | 3        | Dr. Md. Shah Fahad                      
+AI24211         | Core            | Introduction to AI                                           | 4        | Dr. Itu Snigdh                          
+MA24201         | Core            | Numerical Methods (NM)                                       | 2        | Maths Department                        
+HS24211         | Core            | Indian Knowledge System (IKS)                                | 0        | Humainities and Social Sciences Department
+-               | Elective        | OE - I                                                       | 3        | -                                       
+CS24212         | Core            | Data Base Management System (DBMS) Lab                       | 1.5      | Dr. V. K. Jha & Dr. Saikat Chakraborty  
+CS24216         | Core            | Shell and Kernel (SK) Lab                                    | 1.5      | Dr. Sandip Dutta & Dr. Md. Shah Fahad   
+CS24218         | Core            | Advanced Programming (AP)                                    | 2.5      | Dr. R. S. Mehta & Dr. Kanchan Jha       
+MA24202         | Core            | Numerical Methods (NM) Lab                                   | 1        | Maths Department                        
+MC24206/7/8/9/10 | Activity (Any One) | NCC / NSS / PT & Games / Creative Arts / Enterpreneurship    | 1        | -                                       
+
+
+SIGNATURES & APPROVALS:
+- Central Coordinator: Prem Prakash (06.01.2026)
+- Department Coordinator: Shamar (06.01.2026)
+- HoD: Signed
+- Dean: Dr. Gautam Sarkhel (07.01.2026)
+
+
+DATA SCHEMA DEFINITION:
+--------------------------------------------------------------------------------
+Attributes, Row, and Column mapping:
+1. timetable_metadata:
+   - Rows: 1 per Timetable (ID: 10)
+   - Columns: timetable_id, institution, academic_term, department, program, branch, semester, wef_date
+2. courses:
+   - Rows: 12 course categories
+   - Columns: course_code, timetable_id, course_type, course_name, credits, teacher
+3. timetable_slots:
+   - Columns: slot_id, timetable_id, day_of_week, period_name, time_range, subject_details
+--------------------------------------------------------------------------------
+
+SQL DATABASE SCRIPTS:
+--------------------------------------------------------------------------------
+-- TIMETABLE DATABASE SCHEMA PROPOSAL
+-- To create the backend structures for storing and querying timetable data.
+
+CREATE TABLE IF NOT EXISTS timetable_metadata (
+    timetable_id INT PRIMARY KEY,
+    institution VARCHAR(255),
+    academic_term VARCHAR(50),
+    department VARCHAR(50),
+    program VARCHAR(50),
+    branch VARCHAR(50),
+    semester VARCHAR(50),
+    wef_date DATE
+);
+
+CREATE TABLE IF NOT EXISTS courses (
+    course_code VARCHAR(20),
+    timetable_id INT,
+    course_type VARCHAR(50),
+    course_name VARCHAR(255),
+    credits VARCHAR(10),
+    teacher VARCHAR(255),
+    PRIMARY KEY (course_code, timetable_id),
+    FOREIGN KEY (timetable_id) REFERENCES timetable_metadata(timetable_id)
+);
+
+CREATE TABLE IF NOT EXISTS timetable_slots (
+    slot_id INT AUTO_INCREMENT PRIMARY KEY,
+    timetable_id INT,
+    day_of_week VARCHAR(15),
+    period_name VARCHAR(5),
+    time_range VARCHAR(30),
+    subject_details VARCHAR(255),
+    FOREIGN KEY (timetable_id) REFERENCES timetable_metadata(timetable_id)
+);
+
+
+-- SQL INSERT STATEMENTS FOR THIS TIMETABLE
+INSERT INTO timetable_metadata (timetable_id, institution, academic_term, department, program, branch, semester, wef_date)
+VALUES (10, 'BIRLA INSTITUTE OF TECHNOLOGY MESRA, RANCHI', 'SPRING 2026', 'CSE', 'B.Tech', 'AIML', 'IV', '2026-01-08');
+
+-- Course Details Inserts
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('CS24211', 10, 'Core', 'Data Base Management System', '3', 'Dr. V. K. Jha');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('CS24213', 10, 'Core', 'Design and Analysis of Algorithms', '3', 'Dr. Komal Naaz');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('CS24215', 10, 'Core', 'Operating Systems', '3', 'Dr. Md. Shah Fahad');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('AI24211', 10, 'Core', 'Introduction to AI', '4', 'Dr. Itu Snigdh');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('MA24201', 10, 'Core', 'Numerical Methods (NM)', '2', 'Maths Department');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('HS24211', 10, 'Core', 'Indian Knowledge System (IKS)', '0', 'Humainities and Social Sciences Department');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('-', 10, 'Elective', 'OE - I', '3', '-');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('CS24212', 10, 'Core', 'Data Base Management System (DBMS) Lab', '1.5', 'Dr. V. K. Jha & Dr. Saikat Chakraborty');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('CS24216', 10, 'Core', 'Shell and Kernel (SK) Lab', '1.5', 'Dr. Sandip Dutta & Dr. Md. Shah Fahad');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('CS24218', 10, 'Core', 'Advanced Programming (AP)', '2.5', 'Dr. R. S. Mehta & Dr. Kanchan Jha');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('MA24202', 10, 'Core', 'Numerical Methods (NM) Lab', '1', 'Maths Department');
+INSERT INTO courses (course_code, timetable_id, course_type, course_name, credits, teacher) VALUES ('MC24206/7/8/9/10', 10, 'Activity (Any One)', 'NCC / NSS / PT & Games / Creative Arts / Enterpreneurship', '1', '-');
+
+-- Timetable Slots Inserts
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Monday', 'I', '08:00-08:50', 'OE - I');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Monday', 'II', '09:00-09:50', 'IAI (G2)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Monday', 'III', '10:00-10:50', 'DBMS Lab (Lab 1)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Monday', 'IV', '11:00-11:50', 'DBMS Lab (Lab 1)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Monday', 'V', '12:00-12:50', 'DBMS Lab (Lab 1)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Monday', 'VII', '14:30-15:20', 'DAA (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Monday', 'VIII', '15:30-16:20', 'DBMS (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Monday', 'IX', '16:30-17:20', 'OS (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Tuesday', 'III', '10:00-10:50', 'OS (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Tuesday', 'IV', '11:00-11:50', 'IAI (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Tuesday', 'V', '12:00-12:50', 'DAA (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Tuesday', 'VI', '13:30-14:20', 'IKS (Online Mode)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Tuesday', 'VII', '14:30-15:20', 'IKS (Online Mode)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Tuesday', 'VIII', '15:30-16:20', 'NCC/NSS/ PT & Games/ CA/ ES-235');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Tuesday', 'IX', '16:30-17:20', 'NCC/NSS/ PT & Games/ CA/ ES-235');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Wednesday', 'I', '08:00-08:50', 'OE - I');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Wednesday', 'II', '09:00-09:50', 'AP Lab (ILF)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Wednesday', 'III', '10:00-10:50', 'AP Lab (ILF)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Wednesday', 'IV', '11:00-11:50', 'AP Lab (ILF)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Wednesday', 'V', '12:00-12:50', 'AP Lab (ILF)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Thursday', 'II', '09:00-09:50', 'OS (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Thursday', 'III', '10:00-10:50', 'DBMS (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Thursday', 'IV', '11:00-11:50', 'DBMS (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Thursday', 'VI', '13:30-14:20', 'IAI (T) (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Thursday', 'VII', '14:30-15:20', 'NM (214)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Thursday', 'VIII', '15:30-16:20', 'NM Lab');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Thursday', 'IX', '16:30-17:20', 'NM Lab');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Friday', 'I', '08:00-08:50', 'OE - I');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Friday', 'II', '09:00-09:50', 'NM (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Friday', 'III', '10:00-10:50', 'IAI (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Friday', 'IV', '11:00-11:50', 'DAA (216 A)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Friday', 'VI', '13:30-14:20', 'S&KP Lab (Lab 4)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Friday', 'VII', '14:30-15:20', 'S&KP Lab (Lab 4)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Friday', 'VIII', '15:30-16:20', 'S&KP Lab (Lab 4)');
+INSERT INTO timetable_slots (timetable_id, day_of_week, period_name, time_range, subject_details) VALUES (10, 'Friday', 'IX', '16:30-17:20', 'S&KP Lab (Lab 4)');
+
+--------------------------------------------------------------------------------
