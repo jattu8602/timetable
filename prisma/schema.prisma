@@ -3,193 +3,134 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  admin
-  coordinator
-  hod
-  dean
-  faculty
-}
-
-enum RoomType {
-  classroom
-  lab
-  other
-}
-
-enum CourseType {
-  lecture
-  lab
-  tutorial
-  elective
-  project
-  activity
-}
-
 model Department {
-  id        String   @id @default(uuid())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   name      String
   shortCode String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  branches   Branch[]
-  rooms      Room[]
-  courses    Course[]
-  faculty    Faculty[]
-  users      User[]
-  timetables Timetable[]
 }
 
 model Branch {
-  id           String   @id @default(uuid())
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   name         String
   program      String
-  departmentId String
+  departmentId String   @db.ObjectId
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  department  Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  courses     Course[]
-  timetables  Timetable[]
 
   @@unique([name, program, departmentId])
 }
 
 model Room {
-  id           String   @id @default(uuid())
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   number       String
   name         String?
-  departmentId String
+  departmentId String   @db.ObjectId
   capacity     Int
-  type         RoomType @default(classroom)
+  type         String   @default("classroom")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
   @@unique([number, departmentId])
 }
 
 model Course {
-  id           String     @id @default(uuid())
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   code         String
   name         String
   credits      Float
-  type         CourseType
+  type         String
   courseType   String
-  branchId     String
+  branchId     String   @db.ObjectId
   semester     String
-  departmentId String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  branch      Branch        @relation(fields: [branchId], references: [id])
-  department  Department    @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  faculty     CourseFaculty[]
+  departmentId String   @db.ObjectId
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@unique([code, branchId, semester])
 }
 
 model Faculty {
-  id           String   @id @default(uuid())
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   name         String
   email        String   @unique
-  departmentId String
+  departmentId String   @db.ObjectId
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  department Department     @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  courses    CourseFaculty[]
 }
 
 model CourseFaculty {
-  courseId  String
-  facultyId String
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  courseId   String @db.ObjectId
+  facultyId String @db.ObjectId
 
-  course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  faculty Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
-
-  @@id([courseId, facultyId])
+  @@unique([courseId, facultyId])
 }
 
 model Timetable {
-  id           String   @id @default(uuid())
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   institution  String
   academicTerm String
-  departmentId String
+  departmentId String   @db.ObjectId
   program      String
-  branchId     String
+  branchId     String   @db.ObjectId
   semesterName String
   wefDate      DateTime
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  department Department @relation(fields: [departmentId], references: [id])
-  branch     Branch     @relation(fields: [branchId], references: [id])
-  slots      TimeSlot[]
 }
 
 model TimeSlot {
-  id             String  @id @default(uuid())
-  timetableId    String
+  id             String @id @default(auto()) @map("_id") @db.ObjectId
+  timetableId    String @db.ObjectId
   dayOfWeek      String
   periodName     String
   timeRange      String
   subjectDetails String
-
-  timetable Timetable @relation(fields: [timetableId], references: [id], onDelete: Cascade)
 }
 
 model User {
-  id           String   @id @default(uuid())
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   name         String
   email        String   @unique
   password     String
-  role         UserRole @default(admin)
-  departmentId String?
+  role         String   @default("admin")
+  departmentId String?  @db.ObjectId
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  department Department? @relation(fields: [departmentId], references: [id])
-
-  accounts Account[]
-  sessions Session[]
 }
 
 model Account {
-  id                String  @id @default(uuid())
-  userId            String
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
 
 model Session {
-  id           String   @id @default(uuid())
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   sessionToken String   @unique
-  userId       String
+  userId       String   @db.ObjectId
   expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
   identifier String
   token      String   @unique
   expires    DateTime

@@ -2,14 +2,15 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
-  const data = await prisma.course.findMany({
-    include: {
-      branch: { select: { name: true, program: true } },
-      department: { select: { name: true, shortCode: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-  return NextResponse.json(data);
+  const data = await prisma.course.findMany({ orderBy: { createdAt: "desc" } });
+  const departments = await prisma.department.findMany();
+  const branches = await prisma.branch.findMany();
+  const result = data.map((c) => ({
+    ...c,
+    department: departments.find((d) => d.id === c.departmentId) ?? null,
+    branch: branches.find((b) => b.id === c.branchId) ?? null,
+  }));
+  return NextResponse.json(result);
 }
 
 export async function POST(req: NextRequest) {
@@ -20,10 +21,6 @@ export async function POST(req: NextRequest) {
   }
   const data = await prisma.course.create({
     data: { code, name, credits, type, courseType: courseType ?? type, branchId, semester, departmentId },
-    include: {
-      branch: { select: { name: true, program: true } },
-      department: { select: { name: true, shortCode: true } },
-    },
   });
   return NextResponse.json(data, { status: 201 });
 }
@@ -37,10 +34,6 @@ export async function PUT(req: NextRequest) {
   const data = await prisma.course.update({
     where: { id },
     data: { code, name, credits, type, courseType, branchId, semester, departmentId },
-    include: {
-      branch: { select: { name: true, program: true } },
-      department: { select: { name: true, shortCode: true } },
-    },
   });
   return NextResponse.json(data);
 }

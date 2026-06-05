@@ -2,11 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
-  const data = await prisma.faculty.findMany({
-    include: { department: { select: { name: true, shortCode: true } } },
-    orderBy: { createdAt: "desc" },
-  });
-  return NextResponse.json(data);
+  const data = await prisma.faculty.findMany({ orderBy: { createdAt: "desc" } });
+  const departments = await prisma.department.findMany();
+  const result = data.map((f) => ({
+    ...f,
+    department: departments.find((d) => d.id === f.departmentId) ?? null,
+  }));
+  return NextResponse.json(result);
 }
 
 export async function POST(req: NextRequest) {
@@ -15,10 +17,7 @@ export async function POST(req: NextRequest) {
   if (!name || !email || !departmentId) {
     return NextResponse.json({ error: "name, email, departmentId required" }, { status: 400 });
   }
-  const data = await prisma.faculty.create({
-    data: { name, email, departmentId },
-    include: { department: { select: { name: true, shortCode: true } } },
-  });
+  const data = await prisma.faculty.create({ data: { name, email, departmentId } });
   return NextResponse.json(data, { status: 201 });
 }
 
@@ -28,11 +27,7 @@ export async function PUT(req: NextRequest) {
   if (!id) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
   }
-  const data = await prisma.faculty.update({
-    where: { id },
-    data: { name, email, departmentId },
-    include: { department: { select: { name: true, shortCode: true } } },
-  });
+  const data = await prisma.faculty.update({ where: { id }, data: { name, email, departmentId } });
   return NextResponse.json(data);
 }
 

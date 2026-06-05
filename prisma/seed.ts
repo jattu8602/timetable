@@ -1,330 +1,265 @@
-import { PrismaClient, RoomType, CourseType, UserRole } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import * as fs from "fs";
 import * as path from "path";
-import * as crypto from "crypto";
 
 const prisma = new PrismaClient();
 
-interface ParsedTXT {
-  metadata: {
-    institution: string;
-    academic_term: string;
-    department: string;
-    program: string;
-    branch: string;
-    semester: string;
-    wef_date: string;
-  };
-  courses: Array<{
-    course_code: string;
-    course_type: string;
-    course_name: string;
-    credits: string;
-    teacher: string;
-  }>;
-  slots: Array<{
-    day_of_week: string;
-    period_name: string;
-    time_range: string;
-    subject_details: string;
-  }>;
+interface FileMetadata {
+  department: string;
+  program: string;
+  branch: string;
+  semester: string;
+  wef_date: string;
+  institution: string;
+  academic_term: string;
 }
 
-function parseTXTFile(filePath: string): ParsedTXT {
-  const content = fs.readFileSync(filePath, "utf-8");
+interface CourseEntry {
+  course_code: string;
+  course_type: string;
+  course_name: string;
+  credits: string;
+  teacher: string;
+}
 
-  const metadata: ParsedTXT["metadata"] = {
+interface SlotEntry {
+  day_of_week: string;
+  period_name: string;
+  time_range: string;
+  subject_details: string;
+}
+
+async function main() {
+  const dataDir = path.join(__dirname, "..", "data");
+  const files = fs.readdirSync(dataDir).filter((f) => f.endsWith(".txt")).sort();
+
+  const existingDept = await prisma.department.findFirst({ where: { shortCode: "CSE" } });
+  if (existingDept) {
+    console.log("Database already seeded. Skipping.");
+    return;
+  }
+
+  for (const fileName of files) {
+    const filePath = path.join(dataDir, fileName);
+    const content = fs.readFileSync(filePath, "utf-8");
+    console.log(`Processing ${fileName}...`);
+
+    const metadata = parseMetadata(content);
+
+    const dep = await prisma.department.upsert({
+      where: { shortCode: metadata.department },
+      update: {},
+      create: { name: metadata.department, shortCode: metadata.department },
+    });
+
+    let branch = await prisma.branch.findFirst({
+      where: { name: metadata.branch, program: metadata.program, departmentId: dep.id },
+    });
+    if (!branch) {
+      branch = await prisma.branch.create({
+        data: { name: metadata.branch, program: metadata.program, departmentId: dep.id },
+      });
+    }
+
+    const courseEntries = parseCourses(content);
+    for (const entry of courseEntries) {
+      const existingCourse = await prisma.course.findFirst({
+        where: { code: entry.course_code, branchId: branch.id, semester: metadata.semester },
+      });
+      if (!existingCourse) {
+        await prisma.course.create({
+          data: {
+            code: entry.course_code,
+            name: entry.course_name,
+            credits: parseFloat(entry.credits) || 0,
+            type: entry.course_type.toLowerCase().includes("lab") ? "lab" : "lecture",
+            courseType: entry.course_type,
+            branchId: branch.id,
+            semester: metadata.semester,
+            departmentId: dep.id,
+          },
+        });
+      }
+
+      if (entry.teacher && entry.teacher !== "TBA") {
+        const emailPart = entry.teacher.toLowerCase().replace(/[^a-z]/g, ".");
+        const email = `${emailPart}@bitmesra.ac.in`;
+        await prisma.faculty.upsert({
+          where: { email },
+          update: { name: entry.teacher, departmentId: dep.id },
+          create: { name: entry.teacher, email, departmentId: dep.id },
+        });
+      }
+    }
+
+    const slotEntries = parseSlots(content);
+    for (const s of slotEntries) {
+      const roomNumbers: string[] = [];
+      const roomMatch = s.subject_details.match(/\b\d{3}[A-Z]?\b/g);
+      if (roomMatch) roomNumbers.push(...roomMatch);
+      const labMatch = s.subject_details.match(/[Ll]ab\s*\d+/g);
+      if (labMatch) roomNumbers.push(...labMatch);
+
+      for (const num of roomNumbers) {
+        const existingRoom = await prisma.room.findFirst({
+          where: { number: num, departmentId: dep.id },
+        });
+        if (!existingRoom) {
+          const type = num.toLowerCase().includes("lab") ? "lab" : "classroom";
+          await prisma.room.create({
+            data: { number: num, name: `Room ${num}`, capacity: 60, type, departmentId: dep.id },
+          });
+        }
+      }
+    }
+
+    const slots = slotEntries.map((s) => ({
+      dayOfWeek: s.day_of_week,
+      periodName: s.period_name,
+      timeRange: s.time_range,
+      subjectDetails: s.subject_details,
+    }));
+
+    if (slots.length > 0) {
+      const wefDate = metadata.wef_date
+        ? new Date(metadata.wef_date.replace(/\./g, "-"))
+        : new Date();
+
+      const timetable = await prisma.timetable.create({
+        data: {
+          institution: metadata.institution,
+          academicTerm: metadata.academic_term,
+          departmentId: dep.id,
+          program: metadata.program,
+          branchId: branch.id,
+          semesterName: metadata.semester,
+          wefDate,
+        },
+      });
+
+      for (const slot of slots) {
+        await prisma.timeSlot.create({
+          data: {
+            timetableId: timetable.id,
+            dayOfWeek: slot.dayOfWeek,
+            periodName: slot.periodName,
+            timeRange: slot.timeRange,
+            subjectDetails: slot.subjectDetails,
+          },
+        });
+      }
+    }
+
+    console.log(`  → ${courseEntries.length} courses, ${slots.length} slots`);
+  }
+
+  const adminEmail = "admin@samayak.com";
+  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+  if (!existingAdmin) {
+    const { createHash } = await import("node:crypto");
+    const password = createHash("sha256").update("admin123").digest("hex");
+    await prisma.user.create({
+      data: { name: "Admin", email: adminEmail, password, role: "admin" },
+    });
+    console.log("Created admin user: admin@samayak.com / admin123");
+  }
+
+  const counts = {
+    departments: await prisma.department.count(),
+    branches: await prisma.branch.count(),
+    courses: await prisma.course.count(),
+    faculty: await prisma.faculty.count(),
+    rooms: await prisma.room.count(),
+    timetables: await prisma.timetable.count(),
+    slots: await prisma.timeSlot.count(),
+    users: await prisma.user.count(),
+  };
+  console.log("\nSeed complete:", counts);
+}
+
+function parseMetadata(content: string): FileMetadata {
+  const dep = match(content, /Department\s*:\s*(.+)/);
+  const program = match(content, /Program\s*:\s*(.+)/);
+  const branch = match(content, /Branch\s*:\s*(.+)/);
+  const semester = match(content, /Semester\s*:\s*(.+)/);
+  const wefRaw = match(content, /W\.?\s*E\.?\s*F\.?\s*Date\s*:\s*(.+)/);
+  const academic = match(content, /Academic\s*:\s*(.+)/) || "SPRING 2026";
+  return {
+    department: dep?.trim() ?? "Unknown",
+    program: program?.trim() ?? "Unknown",
+    branch: branch?.trim() ?? "Unknown",
+    semester: semester?.trim() ?? "Unknown",
+    wef_date: wefRaw?.trim() ?? "",
     institution: "BIRLA INSTITUTE OF TECHNOLOGY MESRA, RANCHI",
-    academic_term: "SPRING 2026",
-    department: "CSE",
-    program: "B.Tech",
-    branch: "CS",
-    semester: "VI A",
-    wef_date: "2026-01-08",
+    academic_term: academic.trim(),
   };
-
-  const deptMatch = content.match(/Department\s*:\s*(\w+)/);
-  const progMatch = content.match(/Program\s*:\s*([\w.]+)/);
-  const branchMatch = content.match(/Branch\s*:\s*([\w\s]+)/);
-  const semMatch = content.match(/Semester\s*:\s*([\w\s]+)/);
-  const wefMatch = content.match(/W\.E\.F\s*Date\s*:\s*([\d.]+)/);
-
-  if (deptMatch) metadata.department = deptMatch[1].trim();
-  if (progMatch) metadata.program = progMatch[1].trim();
-  if (branchMatch) metadata.branch = branchMatch[1].trim();
-  if (semMatch) metadata.semester = semMatch[1].trim();
-  if (wefMatch) metadata.wef_date = wefMatch[1].replace(/\./g, "-");
-
-  const courses: ParsedTXT["courses"] = [];
-  const courseRegex =
-    /INSERT INTO courses[\s\S]*?VALUES\s*\((.*?)\);/g;
-  let match;
-  while ((match = courseRegex.exec(content)) !== null) {
-    const values = match[1];
-    const parts = parseSQLValues(values);
-    if (parts.length >= 6) {
-      courses.push({
-        course_code: parts[0].replace(/'/g, ""),
-        course_type: parts[1].replace(/'/g, ""),
-        course_name: parts[2].replace(/'/g, ""),
-        credits: parts[3].replace(/'/g, ""),
-        teacher: parts[4].replace(/'/g, ""),
-      });
-    }
-  }
-
-  const slots: ParsedTXT["slots"] = [];
-  const slotRegex =
-    /INSERT INTO timetable_slots[\s\S]*?VALUES\s*\((.*?)\);/g;
-  while ((match = slotRegex.exec(content)) !== null) {
-    const values = match[1];
-    const parts = parseSQLValues(values);
-    if (parts.length >= 5) {
-      slots.push({
-        day_of_week: parts[1].replace(/'/g, ""),
-        period_name: parts[2].replace(/'/g, ""),
-        time_range: parts[3].replace(/'/g, ""),
-        subject_details: parts[4].replace(/'/g, ""),
-      });
-    }
-  }
-
-  return { metadata, courses, slots };
 }
 
-function parseSQLValues(values: string): string[] {
+function parseCourses(content: string): CourseEntry[] {
+  const entries: CourseEntry[] = [];
+  const regex = /INSERT\s+INTO\s+courses[\s\S]*?VALUES\s*\((.+?)\)\s*;/gi;
+  let m;
+  while ((m = regex.exec(content)) !== null) {
+    const vals = parseSQLValues(m[1]);
+    if (vals.length >= 5) {
+      entries.push({
+        course_code: clean(vals[0]),
+        course_type: clean(vals[1]),
+        course_name: clean(vals[2]),
+        credits: clean(vals[3]),
+        teacher: clean(vals[4]),
+      });
+    }
+  }
+  return entries;
+}
+
+function parseSlots(content: string): SlotEntry[] {
+  const entries: SlotEntry[] = [];
+  const regex = /INSERT\s+INTO\s+timetable_slots[\s\S]*?VALUES\s*\((.+?)\)\s*;/gi;
+  let m;
+  while ((m = regex.exec(content)) !== null) {
+    const vals = parseSQLValues(m[1]);
+    if (vals.length >= 4) {
+      entries.push({
+        day_of_week: clean(vals[1]),
+        period_name: clean(vals[2]),
+        time_range: clean(vals[3]),
+        subject_details: clean(vals[4]),
+      });
+    }
+  }
+  return entries;
+}
+
+function parseSQLValues(valuesStr: string): string[] {
   const result: string[] = [];
   let current = "";
   let inQuotes = false;
   let parenDepth = 0;
-
-  for (let i = 0; i < values.length; i++) {
-    const ch = values[i];
-    if (ch === "'" && (i === 0 || values[i - 1] !== "\\")) {
+  for (let i = 0; i < valuesStr.length; i++) {
+    const ch = valuesStr[i];
+    if (ch === "'" && (i === 0 || valuesStr[i - 1] !== "\\")) {
       inQuotes = !inQuotes;
       current += ch;
-    } else if (ch === "," && !inQuotes && parenDepth === 0) {
+    } else if (ch === "(" && !inQuotes) { parenDepth++; current += ch; }
+    else if (ch === ")" && !inQuotes) { parenDepth--; current += ch; }
+    else if (ch === "," && !inQuotes && parenDepth === 0) {
       result.push(current.trim());
       current = "";
-    } else if (ch === "(" && !inQuotes) {
-      parenDepth++;
-      current += ch;
-    } else if (ch === ")" && !inQuotes) {
-      parenDepth--;
-      current += ch;
-    } else {
-      current += ch;
-    }
+    } else { current += ch; }
   }
   if (current.trim()) result.push(current.trim());
   return result;
 }
 
-function parseCredits(credits: string): number {
-  if (credits === "NC" || credits === "-" || credits === "") return 0;
-  return parseFloat(credits) || 0;
+function match(text: string, regex: RegExp): string | null {
+  const m = text.match(regex);
+  return m ? m[1].trim() : null;
 }
 
-function getCourseType(type: string): CourseType {
-  const t = type.toLowerCase();
-  if (t.includes("lab")) return CourseType.lab;
-  if (t.includes("tutorial") || t === "t") return CourseType.tutorial;
-  if (t.includes("project") || t === "proj.") return CourseType.project;
-  if (t.includes("activity") || t === "activity (any one)")
-    return CourseType.activity;
-  if (t.includes("elective") || t === "oe" || t === "pe iii")
-    return CourseType.elective;
-  return CourseType.lecture;
-}
-
-function determineRoomType(roomNum: string): RoomType {
-  const lower = roomNum.toLowerCase();
-  if (lower.startsWith("lab")) return RoomType.lab;
-  return RoomType.classroom;
-}
-
-function extractRoomNumbers(subjectDetails: string): string[] {
-  const rooms: string[] = [];
-  const roomRegex = /(\d{3}[A-Z]?|[Ll]ab\s*\d+)/g;
-  let match;
-  while ((match = roomRegex.exec(subjectDetails)) !== null) {
-    const room = match[1];
-    if (!rooms.includes(room)) rooms.push(room);
-  }
-  return rooms;
-}
-
-async function main() {
-  console.log("Seeding database...");
-
-  const dept = await prisma.department.upsert({
-    where: { shortCode: "CSE" },
-    update: {},
-    create: { name: "Computer Science & Engineering", shortCode: "CSE" },
-  });
-  console.log(`Department: ${dept.name}`);
-
-  const adminPassword = crypto
-    .createHash("sha256")
-    .update("admin123")
-    .digest("hex");
-
-  await prisma.user.upsert({
-    where: { email: "admin@samayak.com" },
-    update: {},
-    create: {
-      name: "Admin",
-      email: "admin@samayak.com",
-      password: adminPassword,
-      role: UserRole.admin,
-      departmentId: dept.id,
-    },
-  });
-  console.log("Admin user created (admin@samayak.com / admin123)");
-
-  const files = fs
-    .readdirSync(path.join(__dirname, "../data"))
-    .filter((f) => f.startsWith("txt") && f.endsWith(".txt"))
-    .sort((a, b) => {
-      const na = parseInt(a.replace("txt", "").replace(".txt", ""));
-      const nb = parseInt(b.replace("txt", "").replace(".txt", ""));
-      return na - nb;
-    });
-
-  const branchCache = new Map<string, string>();
-  const roomCache = new Map<string, string>();
-  const facultyCache = new Map<string, string>();
-  const courseCache = new Map<string, string>();
-
-  for (const fileName of files) {
-    const filePath = path.join(__dirname, "../data", fileName);
-    console.log(`Processing: ${fileName}`);
-    const parsed = parseTXTFile(filePath);
-
-    const branchKey = `${parsed.metadata.program}|${parsed.metadata.branch}`;
-    if (!branchCache.has(branchKey)) {
-      const branch = await prisma.branch.create({
-        data: {
-          name: parsed.metadata.branch,
-          program: parsed.metadata.program,
-          departmentId: dept.id,
-        },
-      });
-      branchCache.set(branchKey, branch.id);
-    }
-    const branchId = branchCache.get(branchKey)!;
-
-    for (const course of parsed.courses) {
-      if (course.course_code === "-" || course.course_code === "") continue;
-
-      const courseName = course.course_name.split("(")[0].trim();
-      const courseKey = `${course.course_code}|${branchId}|${parsed.metadata.semester}`;
-
-      if (!courseCache.has(courseKey)) {
-        const created = await prisma.course.create({
-          data: {
-            code: course.course_code,
-            name: courseName,
-            credits: parseCredits(course.credits),
-            type: getCourseType(course.course_type),
-            courseType: course.course_type,
-            branchId: branchId,
-            semester: parsed.metadata.semester,
-            departmentId: dept.id,
-          },
-        });
-        courseCache.set(courseKey, created.id);
-      }
-    }
-
-    for (const slot of parsed.slots) {
-      const rooms = extractRoomNumbers(slot.subject_details);
-      for (const roomNum of rooms) {
-        const roomKey = `${roomNum}|${dept.id}`;
-        if (!roomCache.has(roomKey)) {
-          const created = await prisma.room.upsert({
-            where: { number_departmentId: { number: roomNum, departmentId: dept.id } },
-            update: {},
-            create: {
-              number: roomNum,
-              name: roomNum,
-              departmentId: dept.id,
-              capacity: roomNum.toLowerCase().startsWith("lab") ? 30 : 60,
-              type: determineRoomType(roomNum),
-            },
-          });
-          roomCache.set(roomKey, created.id);
-        }
-      }
-    }
-
-    for (const course of parsed.courses) {
-      if (course.teacher === "-" || course.teacher === "") continue;
-      const teachers = course.teacher.split("&").map((t) => t.trim());
-      for (const teacher of teachers) {
-        const emailKey = teacher.toLowerCase().replace(/\s+/g, ".");
-        if (!facultyCache.has(emailKey)) {
-          const created = await prisma.faculty.upsert({
-            where: { email: `${emailKey}@bitmesra.ac.in` },
-            update: {},
-            create: {
-              name: teacher,
-              email: `${emailKey}@bitmesra.ac.in`,
-              departmentId: dept.id,
-            },
-          });
-          facultyCache.set(emailKey, created.id);
-        }
-      }
-    }
-
-    const timetable = await prisma.timetable.create({
-      data: {
-        institution: parsed.metadata.institution,
-        academicTerm: parsed.metadata.academic_term,
-        departmentId: dept.id,
-        program: parsed.metadata.program,
-        branchId: branchId,
-        semesterName: parsed.metadata.semester,
-        wefDate: new Date(parsed.metadata.wef_date),
-      },
-    });
-
-    for (const slot of parsed.slots) {
-      await prisma.timeSlot.create({
-        data: {
-          timetableId: timetable.id,
-          dayOfWeek: slot.day_of_week,
-          periodName: slot.period_name,
-          timeRange: slot.time_range,
-          subjectDetails: slot.subject_details,
-        },
-      });
-    }
-
-    for (const course of parsed.courses) {
-      if (course.course_code === "-" || course.course_code === "") continue;
-      const courseKey = `${course.course_code}|${branchId}|${parsed.metadata.semester}`;
-      const courseId = courseCache.get(courseKey);
-      if (!courseId) continue;
-
-      const teachers = course.teacher.split("&").map((t) => t.trim());
-      for (const teacher of teachers) {
-        if (teacher === "-") continue;
-        const emailKey = teacher.toLowerCase().replace(/\s+/g, ".");
-        const facultyId = facultyCache.get(emailKey);
-        if (facultyId) {
-          await prisma.courseFaculty
-            .create({
-              data: { courseId, facultyId },
-            })
-            .catch(() => {});
-        }
-      }
-    }
-  }
-
-  console.log("Seeding complete!");
+function clean(s: string): string {
+  return s.replace(/^['"]|['"]$/g, "").trim();
 }
 
 main()
@@ -332,6 +267,4 @@ main()
     console.error(e);
     process.exit(1);
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .finally(() => prisma.$disconnect());

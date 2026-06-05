@@ -2,11 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
-  const data = await prisma.room.findMany({
-    include: { department: { select: { name: true, shortCode: true } } },
-    orderBy: { createdAt: "desc" },
-  });
-  return NextResponse.json(data);
+  const data = await prisma.room.findMany({ orderBy: { createdAt: "desc" } });
+  const departments = await prisma.department.findMany();
+  const result = data.map((r) => ({
+    ...r,
+    department: departments.find((d) => d.id === r.departmentId) ?? null,
+  }));
+  return NextResponse.json(result);
 }
 
 export async function POST(req: NextRequest) {
@@ -15,10 +17,7 @@ export async function POST(req: NextRequest) {
   if (!number || !capacity || !departmentId) {
     return NextResponse.json({ error: "number, capacity, departmentId required" }, { status: 400 });
   }
-  const data = await prisma.room.create({
-    data: { number, name, capacity, type, departmentId },
-    include: { department: { select: { name: true, shortCode: true } } },
-  });
+  const data = await prisma.room.create({ data: { number, name, capacity, type, departmentId } });
   return NextResponse.json(data, { status: 201 });
 }
 
@@ -28,11 +27,7 @@ export async function PUT(req: NextRequest) {
   if (!id) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
   }
-  const data = await prisma.room.update({
-    where: { id },
-    data: { number, name, capacity, type, departmentId },
-    include: { department: { select: { name: true, shortCode: true } } },
-  });
+  const data = await prisma.room.update({ where: { id }, data: { number, name, capacity, type, departmentId } });
   return NextResponse.json(data);
 }
 

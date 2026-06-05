@@ -2,15 +2,27 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
-  const data = await prisma.timetable.findMany({
-    include: {
-      department: { select: { name: true, shortCode: true } },
-      branch: { select: { name: true, program: true } },
-      _count: { select: { slots: true } },
-    },
-    orderBy: { createdAt: "desc" },
+  const data = await prisma.timetable.findMany({ orderBy: { createdAt: "desc" } });
+  const departments = await prisma.department.findMany();
+  const branches = await prisma.branch.findMany();
+  const slotCounts = await prisma.timeSlot.groupBy({
+    by: ["timetableId"],
+    _count: { id: true },
   });
-  return NextResponse.json(data);
+
+  const result = data.map((tt) => {
+    const dept = departments.find((d) => d.id === tt.departmentId);
+    const branch = branches.find((b) => b.id === tt.branchId);
+    const slotCount = slotCounts.find((s) => s.timetableId === tt.id)?._count.id ?? 0;
+    return {
+      ...tt,
+      department: dept ? { name: dept.name, shortCode: dept.shortCode } : null,
+      branch: branch ? { name: branch.name, program: branch.program } : null,
+      _count: { slots: slotCount },
+    };
+  });
+
+  return NextResponse.json(result);
 }
 
 export async function DELETE(req: NextRequest) {
