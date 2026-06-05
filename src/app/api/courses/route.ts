@@ -2,19 +2,36 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
-  const data = await prisma.course.findMany({ orderBy: { createdAt: "desc" } });
-  const departments = await prisma.department.findMany();
-  const branches = await prisma.branch.findMany();
-  const result = data.map((c) => ({
-    ...c,
-    department: departments.find((d) => d.id === c.departmentId) ?? null,
-    branch: branches.find((b) => b.id === c.branchId) ?? null,
-  }));
-  return NextResponse.json(result);
+  const data = await prisma.course.findMany({
+    where: { deletedAt: null },
+    include: { department: true, branch: true },
+    orderBy: { createdAt: "desc" },
+  });
+  return NextResponse.json(data);
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
+  if (body.rows) {
+    let created = 0;
+    const errors: string[] = [];
+    for (let i = 0; i < body.rows.length; i++) {
+      const r = body.rows[i];
+      const code = r.code || r.Code || r.COURSE_CODE || "";
+      const branchId = r.branchId || r.BranchId || r.BRANCH_ID || "";
+      const semester = r.semester || r.Semester || r.SEMESTER || "";
+      if (!code || !branchId) { errors.push(`Row ${i + 1}: missing code or branchId`); continue; }
+      try {
+        await prisma.course.upsert({
+          where: { code_branchId_semester: { code, branchId, semester } },
+          update: { name: r.name || r.Name || code, credits: parseFloat(r.credits || "0") || 0 },
+          create: { code, name: r.name || r.Name || code, credits: parseFloat(r.credits || "0") || 0, type: (r.type || "lecture").toLowerCase(), courseType: r.courseType || r.type || "", branchId, semester, departmentId: r.departmentId || "" },
+        });
+        created++;
+      } catch (e: any) { errors.push(`Row ${i + 1}: ${e.message}`); }
+    }
+    return NextResponse.json({ created, errors }, { status: 201 });
+  }
   const { code, name, credits, type, courseType, branchId, semester, departmentId } = body;
   if (!code || !name || credits == null || !type || !branchId || !semester || !departmentId) {
     return NextResponse.json({ error: "missing required fields" }, { status: 400 });
@@ -44,6 +61,19 @@ export async function DELETE(req: NextRequest) {
   if (!id) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
   }
-  await prisma.course.delete({ where: { id } });
+  await prisma.course.update({ where: { id }, data: { deletedAt: new Date() } });
   return NextResponse.json({ success: true });
+}
+
+export async function PATCH(req: NextRequest) {
+  const body = await req.json();
+  const { id } = body;
+  if (!id) {
+    return NextResponse.json({ error: "id required" }, { status: 400 });
+  }
+  const data = await prisma.course.update({
+    where: { id },
+    data: { deletedAt: null },
+  });
+  return NextResponse.json(data);
 }

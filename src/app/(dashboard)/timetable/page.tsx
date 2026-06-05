@@ -43,6 +43,7 @@ export default function TimetablePage() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [detail, setDetail] = useState<TimetableDetail | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<{ slotCount: number; courseCount: number; source: string } | null>(null);
 
   const fetchData = useCallback(async () => {
     const res = await fetch("/api/timetables");
@@ -70,6 +71,7 @@ export default function TimetablePage() {
 
     if (result.success) {
       setUploadOpen(false);
+      setUploadResult({ slotCount: result.slotCount, courseCount: result.courseCount, source: result.source });
       fetchData();
     } else {
       alert(`Upload failed: ${result.error}`);
@@ -143,6 +145,36 @@ export default function TimetablePage() {
           ))}
         </div>
       )}
+
+      <Dialog open={!!uploadResult} onOpenChange={(o) => !o && setUploadResult(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import Successful</DialogTitle>
+            <DialogDescription>
+              The timetable was processed and imported.
+            </DialogDescription>
+          </DialogHeader>
+          {uploadResult && (
+            <div className="space-y-3 py-2">
+              <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
+                <span className="text-sm text-muted-foreground">Courses</span>
+                <span className="text-lg font-bold">{uploadResult.courseCount}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
+                <span className="text-sm text-muted-foreground">Time Slots</span>
+                <span className="text-lg font-bold">{uploadResult.slotCount}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
+                <span className="text-sm text-muted-foreground">Source</span>
+                <span className="text-sm font-medium capitalize">{uploadResult.source}</span>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setUploadResult(null)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
         <DialogContent>

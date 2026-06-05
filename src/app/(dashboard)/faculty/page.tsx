@@ -97,6 +97,11 @@ export default function FacultyPage() {
     fetchData();
   }
 
+  async function handleRestore(item: Faculty) {
+    await fetch("/api/faculty", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: item.id }) });
+    fetchData();
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -112,7 +117,12 @@ export default function FacultyPage() {
         onAdd={openCreate}
         onEdit={openEdit}
         onDelete={handleDelete}
+        onRestore={handleRestore}
+        deletedKey="deletedAt"
         addLabel="Add Faculty"
+        bulkImportEndpoint="/api/faculty"
+        bulkImportLabel="Import CSV"
+        bulkImportExample="name,email,departmentId\nJohn Doe,john@example.com,<dept-id>"
       />
 
       <Dialog open={open} onOpenChange={setOpen}>

@@ -127,6 +127,11 @@ export default function RoomsPage() {
     fetchData();
   }
 
+  async function handleRestore(item: Room) {
+    await fetch("/api/rooms", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: item.id }) });
+    fetchData();
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -142,7 +147,12 @@ export default function RoomsPage() {
         onAdd={openCreate}
         onEdit={openEdit}
         onDelete={handleDelete}
+        onRestore={handleRestore}
+        deletedKey="deletedAt"
         addLabel="Add Room"
+        bulkImportEndpoint="/api/rooms"
+        bulkImportLabel="Import CSV"
+        bulkImportExample="number,name,capacity,type,departmentId\n101,Room 101,60,classroom,<dept-id>"
       />
 
       <Dialog open={open} onOpenChange={setOpen}>

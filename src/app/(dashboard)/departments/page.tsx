@@ -81,6 +81,11 @@ export default function DepartmentsPage() {
     fetchData();
   }
 
+  async function handleRestore(item: Department) {
+    await fetch("/api/departments", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: item.id }) });
+    fetchData();
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -96,7 +101,12 @@ export default function DepartmentsPage() {
         onAdd={openCreate}
         onEdit={openEdit}
         onDelete={handleDelete}
+        onRestore={handleRestore}
+        deletedKey="deletedAt"
         addLabel="Add Department"
+        bulkImportEndpoint="/api/departments"
+        bulkImportLabel="Import CSV"
+        bulkImportExample="name,shortCode\nComputer Science,CSE"
       />
 
       <Dialog open={open} onOpenChange={setOpen}>

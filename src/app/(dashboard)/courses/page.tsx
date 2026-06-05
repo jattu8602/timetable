@@ -146,6 +146,12 @@ export default function CoursesPage() {
     setData(await res.json());
   }
 
+  async function handleRestore(item: Course) {
+    await fetch("/api/courses", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: item.id }) });
+    const res = await fetch("/api/courses");
+    setData(await res.json());
+  }
+
   const filteredBranches = branches.filter((b) => !form.departmentId || b.departmentId === form.departmentId);
 
   return (
@@ -163,7 +169,12 @@ export default function CoursesPage() {
         onAdd={openCreate}
         onEdit={openEdit}
         onDelete={handleDelete}
+        onRestore={handleRestore}
+        deletedKey="deletedAt"
         addLabel="Add Course"
+        bulkImportEndpoint="/api/courses"
+        bulkImportLabel="Import CSV"
+        bulkImportExample="code,name,credits,type,branchId,semester,departmentId\nCS101,Intro to CS,4,lecture,<branch-id>,6,<dept-id>"
       />
 
       <Dialog open={open} onOpenChange={setOpen}>

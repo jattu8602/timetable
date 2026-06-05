@@ -6,24 +6,22 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const data = await prisma.timetable.findUnique({ where: { id } });
+  const data = await prisma.timetable.findUnique({
+    where: { id, deletedAt: null },
+    include: {
+      department: true,
+      branch: true,
+      slots: { orderBy: [{ dayOfWeek: "asc" }, { periodName: "asc" }] },
+    },
+  });
   if (!data) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
-  const [department, branch, slots] = await Promise.all([
-    prisma.department.findUnique({ where: { id: data.departmentId } }),
-    prisma.branch.findUnique({ where: { id: data.branchId } }),
-    prisma.timeSlot.findMany({
-      where: { timetableId: data.id },
-      orderBy: [{ dayOfWeek: "asc" }, { periodName: "asc" }],
-    }),
-  ]);
-
   return NextResponse.json({
     ...data,
-    department: department ? { name: department.name, shortCode: department.shortCode } : null,
-    branch: branch ? { name: branch.name, program: branch.program } : null,
-    slots,
+    department: data.department ? { name: data.department.name, shortCode: data.department.shortCode } : null,
+    branch: data.branch ? { name: data.branch.name, program: data.branch.program } : null,
+    slots: data.slots,
   });
 }

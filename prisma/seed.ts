@@ -147,7 +147,7 @@ async function main() {
   }
 
   if (courseCreateData.length > 0) {
-    await prisma.course.createMany({ data: courseCreateData });
+    await prisma.course.createMany({ data: courseCreateData as any });
     console.log(`  ${courseCreateData.length} courses`);
   }
 

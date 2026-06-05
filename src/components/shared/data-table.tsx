@@ -11,7 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowUpDown, Plus, Pencil, Trash2, Search } from "lucide-react";
+import { ArrowUpDown, Plus, Pencil, Trash2, RotateCcw, Upload, Search } from "lucide-react";
+import { BulkImportDialog } from "@/components/shared/bulk-import-dialog";
 
 export interface Column<T> {
   key: keyof T | string;
@@ -29,7 +30,12 @@ interface DataTableProps<T> {
   onAdd?: () => void;
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
+  onRestore?: (item: T) => void;
+  deletedKey?: string;
   addLabel?: string;
+  bulkImportEndpoint?: string;
+  bulkImportLabel?: string;
+  bulkImportExample?: string;
 }
 
 export function DataTable<T>({
@@ -41,11 +47,17 @@ export function DataTable<T>({
   onAdd,
   onEdit,
   onDelete,
+  onRestore,
+  deletedKey,
   addLabel = "Add New",
+  bulkImportEndpoint,
+  bulkImportLabel,
+  bulkImportExample,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [importOpen, setImportOpen] = useState(false);
 
   const filtered = searchable
     ? data.filter((item) => {
@@ -92,12 +104,29 @@ export function DataTable<T>({
             />
           </div>
         )}
-        {onAdd && (
-          <Button onClick={onAdd} size="sm">
-            <Plus className="mr-1 h-4 w-4" />
-            {addLabel}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {bulkImportEndpoint && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                <Upload className="mr-1 h-4 w-4" />
+                {bulkImportLabel || "Import CSV"}
+              </Button>
+              <BulkImportDialog
+                open={importOpen}
+                onOpenChange={setImportOpen}
+                endpoint={bulkImportEndpoint}
+                entityLabel={addLabel.toLowerCase()}
+                exampleCSV={bulkImportExample || ""}
+              />
+            </>
+          )}
+          {onAdd && (
+            <Button onClick={onAdd} size="sm">
+              <Plus className="mr-1 h-4 w-4" />
+              {addLabel}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="rounded-lg border">
@@ -144,7 +173,7 @@ export function DataTable<T>({
                           )}
                     </TableCell>
                   ))}
-                  {(onEdit || onDelete) && (
+                  {(onEdit || onDelete || onRestore) && (
                     <TableCell>
                       <div className="flex items-center gap-1">
                         {onEdit && (
@@ -156,15 +185,26 @@ export function DataTable<T>({
                             <Pencil className="h-4 w-4" />
                           </Button>
                         )}
-                        {onDelete && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onDelete(item)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        )}
+                        {deletedKey && onRestore && (item as Record<string, unknown>)[deletedKey]
+                          ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onRestore(item)}
+                              title="Restore"
+                            >
+                              <RotateCcw className="h-4 w-4 text-green-600" />
+                            </Button>
+                          )
+                          : onDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onDelete(item)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
                       </div>
                     </TableCell>
                   )}
