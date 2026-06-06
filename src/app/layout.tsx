@@ -23,6 +23,11 @@ export default function RootLayout({
       lang="en"
       className={`${figtreeSans.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&amp;display=swap" rel="stylesheet" />
+      </head>
       <body className="min-h-full">
         <SessionProvider>{children}</SessionProvider>
       </body>
