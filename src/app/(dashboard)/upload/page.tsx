@@ -3,14 +3,12 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, CheckCircle2, XCircle, Loader2, ArrowRight } from "lucide-react";
+import { Upload, CheckCircle2, XCircle, Loader2, ArrowRight } from "lucide-react";
 
 interface JobStatus {
   id: string;
   fileName: string;
   status: "ocr" | "structuring" | "completed" | "error";
-  totalPages?: number;
-  currentPage?: number;
   finalTimetableId?: string;
   finalSlotCount?: number;
   finalCourseCount?: number;
@@ -36,7 +34,7 @@ export default function UploadPage() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const f = e.dataTransfer.files[0];
-    if (f && (f.name.endsWith(".pdf") || f.name.endsWith(".txt"))) {
+    if (f && f.name.endsWith(".pdf")) {
       setFile(f);
       setError(null);
     } else {
@@ -85,7 +83,7 @@ export default function UploadPage() {
         </p>
       </div>
 
-      {!jobId && (
+      {!jobId ? (
         <div
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
@@ -104,7 +102,7 @@ export default function UploadPage() {
           <input
             ref={inputRef}
             type="file"
-            accept=".pdf,.txt"
+            accept=".pdf"
             className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) setFile(f); }}
           />
@@ -115,20 +113,14 @@ export default function UploadPage() {
             </Button>
           )}
         </div>
-      )}
-
-      {error && (
-        <div className="rounded-[14px] border border-error/30 bg-error/5 p-4 text-sm text-error">{error}</div>
-      )}
-
-      {job && (
+      ) : (
         <div className="rounded-[22px] border border-lines bg-surface p-6 shadow-card-sm">
           <div className="flex items-center gap-4">
-            {job.status === "completed" ? (
+            {job?.status === "completed" ? (
               <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-success/10">
                 <CheckCircle2 className="size-6 text-success" />
               </div>
-            ) : job.status === "error" ? (
+            ) : job?.status === "error" ? (
               <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-error/10">
                 <XCircle className="size-6 text-error" />
               </div>
@@ -138,24 +130,14 @@ export default function UploadPage() {
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-ink truncate">{job.fileName}</p>
+              <p className="font-semibold text-ink truncate">{job?.fileName}</p>
               <p className="text-sm text-muted-foreground">
-                {job.status === "ocr" && job.totalPages
-                  ? `Page ${job.currentPage ?? 1} of ${job.totalPages}`
-                  : stageLabels[job.status]}
+                {stageLabels[job?.status ?? "ocr"]}
               </p>
-              {job.status === "ocr" && job.totalPages && (
-                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-canvas-2">
-                  <div
-                    className="h-full rounded-full bg-brand-blue transition-all duration-300"
-                    style={{ width: `${((job.currentPage ?? 0) / job.totalPages) * 100}%` }}
-                  />
-                </div>
-              )}
             </div>
           </div>
 
-          {job.status === "completed" && (
+          {job?.status === "completed" && (
             <div className="mt-5 flex items-center justify-between rounded-[14px] bg-success/5 p-4">
               <div>
                 <p className="text-sm font-medium text-ink">
@@ -169,12 +151,16 @@ export default function UploadPage() {
             </div>
           )}
 
-          {job.status === "error" && (
+          {job?.status === "error" && (
             <div className="mt-4 rounded-[14px] border border-error/30 bg-error/5 p-4 text-sm text-error">
-              {job.error || "Processing failed. Try again with a clearer PDF."}
+              {job.error || "Processing failed."}
             </div>
           )}
         </div>
+      )}
+
+      {error && (
+        <div className="rounded-[14px] border border-error/30 bg-error/5 p-4 text-sm text-error">{error}</div>
       )}
     </div>
   );

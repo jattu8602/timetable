@@ -1,13 +1,11 @@
 import { structureWithOpenAI } from "@/lib/openai-timetable";
 import { importTimetable } from "@/lib/timetable/importer";
-import { ocrImage, renderPdfPages } from "@/lib/ocr";
+import { ocrPdf } from "@/lib/ocr";
 
 export interface UploadJob {
   id: string;
   fileName: string;
   status: "ocr" | "structuring" | "completed" | "error";
-  totalPages?: number;
-  currentPage?: number;
   text?: string;
   finalTimetableId?: string;
   finalSlotCount?: number;
@@ -37,39 +35,23 @@ export function getJob(jobId: string): UploadJob | undefined {
 
 export async function processPdf(jobId: string, buffer: Buffer) {
   try {
-    const pageImages = await renderPdfPages(buffer);
-    const totalPages = pageImages.length;
+    const text = await ocrPdf(buffer);
 
     const job = jobs.get(jobId);
     if (!job) return;
-    job.totalPages = totalPages;
-    job.updatedAt = Date.now();
 
-    const ocrTexts: string[] = [];
-
-    for (let i = 0; i < totalPages; i++) {
-      job.currentPage = i + 1;
-      job.updatedAt = Date.now();
-      const text = await ocrImage(pageImages[i]);
-      if (text.trim()) {
-        ocrTexts.push(text);
-      }
-    }
-
-    const combinedText = ocrTexts.join("\n\n");
-
-    if (!combinedText.trim()) {
+    if (!text.trim()) {
       job.status = "error";
-      job.error = "No text could be extracted from any page.";
+      job.error = "No text could be extracted from the PDF.";
       job.updatedAt = Date.now();
       return;
     }
 
     job.status = "structuring";
-    job.text = combinedText;
+    job.text = text;
     job.updatedAt = Date.now();
 
-    const parsed = await structureWithOpenAI(combinedText);
+    const parsed = await structureWithOpenAI(text);
 
     if (parsed.slots.length === 0 && parsed.courses.length === 0) {
       job.status = "error";

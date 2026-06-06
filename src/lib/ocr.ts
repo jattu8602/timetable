@@ -3,23 +3,23 @@ const OCR_API_KEY = process.env.OCR_SPACE_API_KEY;
 interface OcrSpaceResponse {
   OCRExitCode: number;
   IsErroredOnProcessing: boolean;
-  ProcessingTimeInMilliseconds?: number;
   ParsedResults?: {
     FileParseExitCode: number;
     ParsedText: string;
     ErrorMessage: string;
-    ErrorDetails?: string;
   }[];
   ErrorMessage?: string | string[];
 }
 
-export async function ocrImage(imageBuffer: Buffer): Promise<string> {
-  const base64 = imageBuffer.toString("base64");
+export async function ocrPdf(buffer: Buffer): Promise<string> {
+  const base64 = buffer.toString("base64");
   const payload = new URLSearchParams();
   payload.append("apikey", OCR_API_KEY!);
-  payload.append("base64Image", `data:image/png;base64,${base64}`);
+  payload.append("base64Image", `data:application/pdf;base64,${base64}`);
   payload.append("language", "eng");
   payload.append("OCREngine", "2");
+  payload.append("isCreateSearchablePdf", "false");
+  payload.append("isOverlayRequired", "false");
 
   const res = await fetch("https://api.ocr.space/parse/image", {
     method: "POST",
@@ -41,34 +41,6 @@ export async function ocrImage(imageBuffer: Buffer): Promise<string> {
     throw new Error(`OCR processing error: ${msg}`);
   }
 
-  return data.ParsedResults?.[0]?.ParsedText ?? "";
-}
-
-export async function renderPdfPages(buffer: Buffer): Promise<Buffer[]> {
-  const pdfjsLib = await import("pdfjs-dist");
-  const { createCanvas } = await import("@napi-rs/canvas");
-
-  const uint8 = new Uint8Array(buffer);
-  const loadingTask = pdfjsLib.getDocument({ data: uint8 });
-  const pdf = await loadingTask.promise;
-  const pages: Buffer[] = [];
-
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const viewport = page.getViewport({ scale: 2 });
-    const canvas = createCanvas(viewport.width, viewport.height);
-    const ctx = canvas.getContext("2d");
-
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, viewport.width, viewport.height);
-
-    await page.render({
-      canvasContext: ctx as unknown as CanvasRenderingContext2D,
-      viewport,
-    }).promise;
-
-    pages.push(canvas.toBuffer("image/png"));
-  }
-
-  return pages;
+  const parsedText = data.ParsedResults?.[0]?.ParsedText ?? "";
+  return parsedText;
 }
