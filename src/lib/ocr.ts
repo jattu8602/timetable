@@ -45,8 +45,7 @@ export async function ocrImage(imageBuffer: Buffer): Promise<string> {
 }
 
 export async function renderPdfPages(buffer: Buffer): Promise<Buffer[]> {
-  const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+  const pdfjsLib = await import("pdfjs-dist");
   const { createCanvas } = await import("@napi-rs/canvas");
 
   const uint8 = new Uint8Array(buffer);
@@ -64,7 +63,6 @@ export async function renderPdfPages(buffer: Buffer): Promise<Buffer[]> {
     ctx.fillRect(0, 0, viewport.width, viewport.height);
 
     await page.render({
-      canvas: null,
       canvasContext: ctx as unknown as CanvasRenderingContext2D,
       viewport,
     }).promise;
