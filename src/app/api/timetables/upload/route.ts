@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const jobId = createJob(file.name, 0);
+    const jobId = createJob(file.name);
 
     processPdf(jobId, buffer).catch(console.error);
 
