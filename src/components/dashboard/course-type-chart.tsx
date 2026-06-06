@@ -17,7 +17,7 @@ interface CourseTypeChartProps {
 
 export function CourseTypeChart({ data }: CourseTypeChartProps) {
   return (
-    <div className="rounded-[22px] bg-card p-6 shadow-[0_4px_14px_rgba(37,97,153,.08)]">
+    <div className="rounded-[22px] border border-lines bg-surface p-6 shadow-card-sm">
       <h3 className="mb-4 text-sm font-medium text-muted-foreground">
         Courses by Type
       </h3>

@@ -105,7 +105,7 @@ export default function TimetablePage() {
       </div>
 
       {data.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-[22px] border border-lines bg-surface px-6 py-16 text-center shadow-[0_4px_14px_rgba(37,97,153,.08)]">
+        <div className="flex flex-col items-center justify-center rounded-[22px] border border-lines bg-surface px-6 py-16 text-center shadow-card-sm">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-canvas-2">
             <FileText className="h-6 w-6 text-brand-blue" />
           </div>
@@ -119,7 +119,7 @@ export default function TimetablePage() {
           {data.map((tt) => (
             <div
               key={tt.id}
-              className="group rounded-[22px] border border-lines bg-surface p-5 shadow-[0_4px_14px_rgba(37,97,153,.08)] transition-shadow hover:shadow-[0_14px_40px_rgba(37,97,153,.12)]"
+              className="rounded-[22px] border border-lines bg-surface p-5 shadow-card-sm transition-shadow hover:shadow-card-md"
             >
               <div className="flex items-start justify-between">
                 <div>

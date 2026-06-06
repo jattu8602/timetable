@@ -57,6 +57,7 @@
   --color-brand-blue: var(--brand-blue);
   --color-canvas: var(--canvas);
   --color-surface: var(--surface);
+  --color-black: var(--black);
   --color-lines: var(--lines);
   --color-line-2: var(--line-2);
 }
@@ -115,6 +116,7 @@
   --shadow-sm: 0 4px 14px rgba(37, 97, 153, 0.08);
   --shadow-md: 0 14px 40px rgba(37, 97, 153, 0.12);
   --shadow-lg: 0 24px 70px rgba(37, 97, 153, 0.16);
+  --shadow-glow: 0 8px 18px rgba(37, 97, 153, 0.3);
 }
 
 .dark {
@@ -184,6 +186,10 @@
 
 .shadow-card-lg {
   box-shadow: var(--shadow-lg);
+}
+
+.shadow-card-glow {
+  box-shadow: var(--shadow-glow);
 }
 
 .radius-card {

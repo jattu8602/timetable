@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import Image from "next/image";
+import Link from "next/link";
 import { CourseTypeChart } from "@/components/dashboard/course-type-chart";
 import { DailySlotsChart } from "@/components/dashboard/daily-slots-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -108,20 +110,70 @@ async function getAnalytics() {
 export default async function DashboardPage() {
   const a = await getAnalytics();
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Institution analytics & operational metrics
-        </p>
-      </div>
+  const avgEmpty = a.emptyProbability.length > 0
+    ? Math.round(a.emptyProbability.reduce((s, p) => s + p.probability, 0) / a.emptyProbability.length)
+    : 0;
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <MetricCard title="Room Utilisation" value={`${a.roomUtilisation}%`} description="Across all rooms" />
-        <MetricCard title="Empty Room Probability" value={`${Math.round(a.emptyProbability.reduce((s, p) => s + p.probability, 0) / a.emptyProbability.length)}%`} description="Avg per time slot (I–IX)" />
-        <MetricCard title="Under-Running Courses" value={a.underRunningCount.toString()} description={`${a.underRunning.length} flagged`} />
-        <MetricCard title="Avg Empty Room-Hours" value={`${a.avgEmptyRoomHours}h`} description="Per room per day" />
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-col gap-5 rounded-[26px] border border-line-2 bg-[#DCEAF8] p-[22px] shadow-[inset_0_1px_0_#ffffff]">
+        <div className="bg-brand-gradient rounded-[20px] p-[30px_32px] shadow-card-md">
+          <div className="flex items-start justify-between">
+            <div className="max-w-lg">
+              <h1 className="text-[30px] font-extrabold tracking-[-0.03em] text-white leading-tight">
+                Welcome back, Admin
+              </h1>
+              <p className="mt-2 text-[14.5px] leading-relaxed text-white/90">
+                Here’s a quick snapshot of your institution. Review room utilisation, under-running courses, and daily slot activity.
+              </p>
+            </div>
+            <Image
+              src="/logo.png"
+              alt=""
+              width={60}
+              height={60}
+              className="hidden rounded-[16px] sm:block"
+            />
+          </div>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link
+              href="/timetable"
+              className="inline-flex shrink-0 items-center justify-center gap-[9px] rounded-full bg-surface p-[13px_24px] text-[14.5px] font-bold text-ink shadow-card-sm transition-all duration-180 hover:-translate-y-[2px] hover:shadow-card-md"
+            >
+              View Timetables
+            </Link>
+            <Link
+              href="/departments"
+              className="inline-flex shrink-0 items-center justify-center gap-[9px] rounded-full border-[1.5px] border-white/30 p-[13px_24px] text-[14.5px] font-bold text-white transition-all duration-180 hover:-translate-y-[2px] hover:bg-white/10"
+            >
+              Manage Departments
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="flex flex-col gap-[6px] rounded-[22px] bg-surface p-[22px_24px] shadow-card-sm">
+            <p className="text-[13px] font-bold text-muted">Total Rooms</p>
+            <p className="text-[38px] font-extrabold tracking-[-0.03em] text-ink leading-none">
+              {a.totalRooms}
+            </p>
+            <p className="text-[13px] font-medium text-success">{a.roomUtilisation}% utilised</p>
+          </div>
+          <div className="flex flex-col gap-[6px] rounded-[22px] bg-surface p-[22px_24px] shadow-card-sm">
+            <p className="text-[13px] font-bold text-muted">Total Courses</p>
+            <p className="text-[38px] font-extrabold tracking-[-0.03em] text-ink leading-none">
+              {a.totalCourses}
+            </p>
+            <p className="text-[13px] font-medium text-warning">{a.underRunningCount} under-running</p>
+          </div>
+          <div className="flex flex-col gap-[6px] rounded-[22px] bg-surface p-[22px_24px] shadow-card-sm">
+            <p className="text-[13px] font-bold text-muted">Total Faculty</p>
+            <p className="text-[38px] font-extrabold tracking-[-0.03em] text-ink leading-none">
+              {a.totalFaculty}
+            </p>
+            <p className="text-[13px] font-medium text-info">{a.totalTimetables} timetables</p>
+          </div>
+        </div>
       </div>
 
       <Card>
@@ -152,7 +204,7 @@ export default async function DashboardPage() {
                 <div key={c.code} className="flex items-center justify-between rounded-full bg-canvas-2/30 px-4 py-2 text-sm">
                   <span className="font-medium text-ink">{c.code}</span>
                   <span className="text-muted-foreground">{c.name}</span>
-                  <span className="text-[#F5A524]">{c.credits}cr — gap: {c.gap}</span>
+                  <span className="text-warning">{c.credits}cr — gap: {c.gap}</span>
                 </div>
               ))}
             </div>
@@ -165,15 +217,5 @@ export default async function DashboardPage() {
         <DailySlotsChart data={a.dailySlotData} />
       </div>
     </div>
-  );
-}
-
-function MetricCard({ title, value, description }: { title: string; value: string; description: string }) {
-  return (
-    <Card className="p-6">
-      <p className="text-sm font-medium text-muted-foreground">{title}</p>
-      <p className="mt-2 text-3xl font-bold text-ink">{value}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-    </Card>
   );
 }

@@ -129,7 +129,7 @@ export function DataTable<T>({
         </div>
       </div>
 
-      <div className="rounded-[22px] border border-lines bg-surface shadow-[0_4px_14px_rgba(37,97,153,.08)]">
+      <div className="rounded-[22px] border border-lines bg-surface shadow-card-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -138,7 +138,7 @@ export function DataTable<T>({
                   {col.sortable ? (
                     <button
                       onClick={() => toggleSort(String(col.key))}
-                      className="flex items-center gap-1 font-medium text-muted"
+                      className="flex items-center gap-1 font-bold text-muted"
                     >
                       {col.label}
                       <ArrowUpDown className="h-3 w-3" />

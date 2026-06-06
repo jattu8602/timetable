@@ -2,14 +2,15 @@
 
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 
 const pageTitles: Record<string, string> = {
-  "/": "Dashboard",
+  "/": "Home",
   "/departments": "Departments",
   "/rooms": "Rooms",
   "/courses": "Courses",
   "/faculty": "Faculty & Users",
-  "/timetable": "Timetable",
+  "/timetable": "Class Timetable",
 };
 
 export function Header() {
@@ -18,21 +19,25 @@ export function Header() {
   const title = pageTitles[pathname] ?? "Samayak";
 
   return (
-    <header className="flex h-14 items-center justify-between rounded-full bg-surface px-5 shadow-[0_4px_14px_rgba(37,97,153,.08)]">
+    <header className="flex h-14 items-center justify-between rounded-full bg-surface px-5 shadow-card-sm border border-lines">
       <div>
-        <h2 className="text-lg font-semibold text-ink">{title}</h2>
+        <h2 className="text-lg font-bold tracking-[-0.02em] text-ink">{title}</h2>
       </div>
       <div className="flex items-center gap-3">
         {session?.user && (
           <div className="flex items-center gap-2 text-sm">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-gradient text-[10px] font-bold text-white">
-              {session.user.name?.charAt(0) ?? "A"}
-            </div>
+            <Image
+              src="/logo.png"
+              alt=""
+              width={28}
+              height={28}
+              className="rounded-full"
+            />
             <div className="hidden md:block">
-              <p className="font-medium leading-tight text-ink">
+              <p className="font-semibold leading-tight text-ink">
                 {session.user.name}
               </p>
-              <p className="text-xs capitalize text-muted-foreground">
+              <p className="text-xs font-medium capitalize text-muted-foreground">
                 {session.user.role}
               </p>
             </div>
