@@ -13,32 +13,7 @@ interface OcrSpaceResponse {
   ErrorMessage?: string | string[];
 }
 
-export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
-  if (buffer.length === 0) return "";
-  return extractViaOcrSpace(buffer);
-}
-
-async function extractViaOcrSpace(buffer: Buffer): Promise<string> {
-  try {
-    const pages = await renderPdfPages(buffer);
-    if (pages.length === 0) return "";
-
-    const allText: string[] = [];
-    for (let i = 0; i < pages.length; i++) {
-      const text = await ocrImage(pages[i]);
-      if (text.trim()) {
-        allText.push(text);
-      }
-    }
-
-    return allText.join("\n\n---PAGE BREAK---\n\n");
-  } catch (err) {
-    console.warn("OCR.space failed:", err);
-    return "";
-  }
-}
-
-async function ocrImage(imageBuffer: Buffer): Promise<string> {
+export async function ocrImage(imageBuffer: Buffer): Promise<string> {
   const base64 = imageBuffer.toString("base64");
   const payload = new URLSearchParams();
   payload.append("apikey", OCR_API_KEY!);
@@ -63,15 +38,13 @@ async function ocrImage(imageBuffer: Buffer): Promise<string> {
     const msg = Array.isArray(data.ErrorMessage)
       ? data.ErrorMessage.join("; ")
       : data.ErrorMessage || "Unknown error";
-    console.warn(`OCR.space processing error: ${msg}`);
-    return "";
+    throw new Error(`OCR processing error: ${msg}`);
   }
 
-  const parsedText = data.ParsedResults?.[0]?.ParsedText ?? "";
-  return parsedText;
+  return data.ParsedResults?.[0]?.ParsedText ?? "";
 }
 
-async function renderPdfPages(buffer: Buffer): Promise<Buffer[]> {
+export async function renderPdfPages(buffer: Buffer): Promise<Buffer[]> {
   const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const { createCanvas } = await import("@napi-rs/canvas");
 
