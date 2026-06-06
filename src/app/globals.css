@@ -91,7 +91,7 @@
   --secondary: var(--canvas-2);
   --secondary-foreground: var(--brand-mid);
   --muted: var(--canvas-2);
-  --muted-foreground: #7c8294;
+  --muted-foreground: #393939;
   --accent: var(--canvas-2);
   --accent-foreground: var(--brand-deep);
   --destructive: var(--error);
@@ -131,7 +131,7 @@
   --secondary: oklch(0.25 0.04 260);
   --secondary-foreground: oklch(0.95 0.01 240);
   --muted: oklch(0.25 0.03 260);
-  --muted-foreground: oklch(0.7 0.02 240);
+  --muted-foreground: oklch(62.925% 0.00121 200.387);
   --accent: oklch(0.25 0.06 260);
   --accent-foreground: oklch(0.95 0.01 240);
   --destructive: oklch(0.7 0.19 22);
