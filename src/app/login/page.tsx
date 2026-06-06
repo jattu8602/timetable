@@ -1,13 +1,12 @@
 "use client"
 
 import { signIn } from "next-auth/react";
-import Image from "next/image";
 
 export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-5">
       <div className="flex w-full max-w-sm flex-col items-center">
-        <Image
+        <img
           src="/logo.png"
           alt="Anugat AI"
           width={80}

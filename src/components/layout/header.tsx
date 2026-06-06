@@ -2,7 +2,6 @@
 
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import Image from "next/image";
 
 const pageTitles: Record<string, string> = {
   "/": "Home",
@@ -26,12 +25,12 @@ export function Header() {
       <div className="flex items-center gap-3">
         {session?.user && (
           <div className="flex items-center gap-2 text-sm">
-            <Image
+            <img
               src="/logo.png"
               alt=""
               width={28}
               height={28}
-              className="rounded-full"
+              className="rounded-full size-7"
             />
             <div className="hidden md:block">
               <p className="font-semibold leading-tight text-ink">

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
@@ -29,7 +28,7 @@ export function Sidebar() {
   return (
     <aside className="flex h-full w-[280px] shrink-0 flex-col overflow-hidden rounded-[24px] border border-lines bg-surface shadow-card-md">
       <div className="flex items-center gap-[11px] px-[16px] pb-[18px] pt-[14px]">
-        <Image src="/logo.png" alt="Anugat AI" width={42} height={42} className="rounded-[11px]" />
+        <img src="/logo.png" alt="Anugat AI" width={42} height={42} className="rounded-[11px]" />
         <span className="text-[18px] font-extrabold tracking-[-0.02em] text-ink">Anugat AI</span>
       </div>
 

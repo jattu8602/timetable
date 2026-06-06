@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import Image from "next/image";
 import Link from "next/link";
 import { CourseTypeChart } from "@/components/dashboard/course-type-chart";
 import { DailySlotsChart } from "@/components/dashboard/daily-slots-chart";
@@ -127,7 +126,7 @@ export default async function DashboardPage() {
                 Here’s a quick snapshot of your institution. Review room utilisation, under-running courses, and daily slot activity.
               </p>
             </div>
-            <Image
+            <img
               src="/logo.png"
               alt=""
               width={60}
