@@ -1,7 +1,5 @@
 import type { ParsedTimetable, ParsedCourse, ParsedSlot, ParsedMetadata } from "./timetable/parser";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
 const SYSTEM_PROMPT = `You are a timetable data extraction assistant. Given raw OCR text from an academic timetable PDF (BIT Mesra format), extract all information into valid JSON matching this TypeScript interface:
 
 interface ParsedTimetable {
@@ -39,7 +37,8 @@ RULES:
 7. Return ONLY valid JSON, no markdown, no explanation.`;
 
 export async function structureWithOpenAI(rawText: string): Promise<ParsedTimetable> {
-  if (!OPENAI_API_KEY || OPENAI_API_KEY === "paste-your-openai-key-here") {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key || key === "paste-your-openai-key-here") {
     throw new Error("OPENAI_API_KEY not configured");
   }
 
@@ -50,7 +49,7 @@ export async function structureWithOpenAI(rawText: string): Promise<ParsedTimeta
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Authorization": `Bearer ${key}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
