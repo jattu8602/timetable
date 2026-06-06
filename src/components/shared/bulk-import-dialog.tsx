@@ -84,7 +84,7 @@ export function BulkImportDialog({ open, onOpenChange, endpoint, entityLabel, ex
               placeholder={`Paste CSV here...\n\ne.g.\n${exampleCSV}`}
               value={csvText}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCsvText(e.target.value)}
-              className="w-full rounded-md border bg-background px-3 py-2 font-mono text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="w-full rounded-[14px] border border-lines bg-surface px-4 py-3 font-mono text-xs text-ink outline-none transition-all placeholder:text-muted-foreground focus-visible:border-brand-blue focus-visible:ring-3 focus-visible:ring-brand-blue/20"
             />
             <Button onClick={handlePreview} disabled={!csvText.trim()}>
               Preview

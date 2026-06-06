@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { CourseTypeChart } from "@/components/dashboard/course-type-chart";
 import { DailySlotsChart } from "@/components/dashboard/daily-slots-chart";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
@@ -110,7 +111,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Dashboard</h1>
         <p className="text-sm text-muted-foreground">
           Institution analytics & operational metrics
         </p>
@@ -123,32 +124,40 @@ export default async function DashboardPage() {
         <MetricCard title="Avg Empty Room-Hours" value={`${a.avgEmptyRoomHours}h`} description="Per room per day" />
       </div>
 
-      <div className="rounded-xl border bg-card p-4">
-        <h3 className="mb-3 text-sm font-medium">Empty Room Probability by Period</h3>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-9">
-          {a.emptyProbability.map((p) => (
-            <div key={p.period} className="rounded-lg border bg-muted/30 p-2 text-center">
-              <div className="text-xs text-muted-foreground">Period {p.period}</div>
-              <div className="mt-1 text-lg font-bold">{p.probability}%</div>
-              <div className="text-xs text-muted-foreground">{p.empty}/{p.total} days</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {a.underRunning.length > 0 && (
-        <div className="rounded-xl border bg-card p-4">
-          <h3 className="mb-3 text-sm font-medium">Under-Running Courses</h3>
-          <div className="space-y-1">
-            {a.underRunning.map((c) => (
-              <div key={c.code} className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-1.5 text-sm">
-                <span className="font-medium">{c.code}</span>
-                <span className="text-muted-foreground">{c.name}</span>
-                <span className="text-amber-600">{c.credits}cr — gap: {c.gap}</span>
+      <Card>
+        <CardHeader>
+          <CardTitle>Empty Room Probability by Period</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-9">
+            {a.emptyProbability.map((p) => (
+              <div key={p.period} className="rounded-[14px] border border-lines bg-canvas-2/30 p-3 text-center">
+                <div className="text-xs text-muted-foreground">Period {p.period}</div>
+                <div className="mt-1 text-lg font-bold text-ink">{p.probability}%</div>
+                <div className="text-xs text-muted-foreground">{p.empty}/{p.total} days</div>
               </div>
             ))}
           </div>
-        </div>
+        </CardContent>
+      </Card>
+
+      {a.underRunning.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Under-Running Courses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1">
+              {a.underRunning.map((c) => (
+                <div key={c.code} className="flex items-center justify-between rounded-full bg-canvas-2/30 px-4 py-2 text-sm">
+                  <span className="font-medium text-ink">{c.code}</span>
+                  <span className="text-muted-foreground">{c.name}</span>
+                  <span className="text-[#F5A524]">{c.credits}cr — gap: {c.gap}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -161,10 +170,10 @@ export default async function DashboardPage() {
 
 function MetricCard({ title, value, description }: { title: string; value: string; description: string }) {
   return (
-    <div className="rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
+    <Card className="p-6">
       <p className="text-sm font-medium text-muted-foreground">{title}</p>
-      <p className="mt-2 text-3xl font-bold">{value}</p>
+      <p className="mt-2 text-3xl font-bold text-ink">{value}</p>
       <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-    </div>
+    </Card>
   );
 }

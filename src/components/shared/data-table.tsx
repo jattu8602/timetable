@@ -95,12 +95,12 @@ export function DataTable<T>({
       <div className="flex items-center justify-between gap-4">
         {searchable && (
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+              className="pl-10"
             />
           </div>
         )}
@@ -129,7 +129,7 @@ export function DataTable<T>({
         </div>
       </div>
 
-      <div className="rounded-lg border">
+      <div className="rounded-[22px] border border-lines bg-surface shadow-[0_4px_14px_rgba(37,97,153,.08)]">
         <Table>
           <TableHeader>
             <TableRow>
@@ -138,7 +138,7 @@ export function DataTable<T>({
                   {col.sortable ? (
                     <button
                       onClick={() => toggleSort(String(col.key))}
-                      className="flex items-center gap-1 font-medium"
+                      className="flex items-center gap-1 font-medium text-muted"
                     >
                       {col.label}
                       <ArrowUpDown className="h-3 w-3" />
@@ -193,7 +193,7 @@ export function DataTable<T>({
                               onClick={() => onRestore(item)}
                               title="Restore"
                             >
-                              <RotateCcw className="h-4 w-4 text-green-600" />
+                              <RotateCcw className="h-4 w-4 text-success" />
                             </Button>
                           )
                           : onDelete && (
@@ -202,7 +202,7 @@ export function DataTable<T>({
                               size="icon"
                               onClick={() => onDelete(item)}
                             >
-                              <Trash2 className="h-4 w-4 text-destructive" />
+                              <Trash2 className="h-4 w-4 text-error" />
                             </Button>
                           )}
                       </div>

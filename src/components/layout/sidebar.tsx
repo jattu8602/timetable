@@ -26,9 +26,9 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r bg-sidebar">
-      <div className="bg-brand-gradient flex h-16 items-center gap-2 px-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
+    <aside className="flex h-full w-60 shrink-0 flex-col overflow-hidden rounded-[22px] bg-surface shadow-[0_14px_40px_rgba(37,97,153,.12)]">
+      <div className="bg-brand-gradient flex h-16 items-center gap-2.5 px-5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-white/20">
           <span className="text-sm font-bold text-white">S</span>
         </div>
         <span className="text-lg font-semibold text-white">Samayak</span>
@@ -41,25 +41,25 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 rounded-full px-3 py-2.5 text-sm font-medium transition-all ${
                 isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  ? "bg-brand-gradient text-white shadow-[0_4px_14px_rgba(37,97,153,.08)]"
+                  : "text-ink-soft hover:bg-lines hover:text-ink"
               }`}
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon className="h-4 w-4 shrink-0" />
               {item.label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="border-t p-3">
+      <div className="border-t border-lines p-3">
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          className="flex w-full items-center gap-3 rounded-full px-3 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-lines hover:text-ink"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-4 w-4 shrink-0" />
           Sign Out
         </button>
       </div>

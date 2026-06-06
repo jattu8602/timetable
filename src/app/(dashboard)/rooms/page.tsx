@@ -135,7 +135,7 @@ export default function RoomsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Rooms</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Rooms</h1>
         <p className="text-sm text-muted-foreground">Manage lecture halls, labs, and other rooms</p>
       </div>
 

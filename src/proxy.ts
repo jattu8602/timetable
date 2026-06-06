@@ -5,7 +5,7 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isAuth = !!req.auth;
 
-  const publicPaths = ["/login", "/api/auth", "/api/health"];
+  const publicPaths = ["/login", "/design", "/api/auth", "/api/health"];
 
   if (publicPaths.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();

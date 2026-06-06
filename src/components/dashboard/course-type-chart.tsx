@@ -17,7 +17,7 @@ interface CourseTypeChartProps {
 
 export function CourseTypeChart({ data }: CourseTypeChartProps) {
   return (
-    <div className="rounded-xl border bg-card p-6 shadow-sm">
+    <div className="rounded-[22px] bg-card p-6 shadow-[0_4px_14px_rgba(37,97,153,.08)]">
       <h3 className="mb-4 text-sm font-medium text-muted-foreground">
         Courses by Type
       </h3>
@@ -41,7 +41,7 @@ export function CourseTypeChart({ data }: CourseTypeChartProps) {
             <Tooltip />
             <Legend
               formatter={(value: string) => (
-                <span className="text-xs capitalize">{value}</span>
+                <span className="text-xs capitalize text-ink">{value}</span>
               )}
             />
           </PieChart>

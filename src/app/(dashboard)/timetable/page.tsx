@@ -93,7 +93,7 @@ export default function TimetablePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Timetables</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">Timetables</h1>
           <p className="text-sm text-muted-foreground">
             Upload and manage BIT Mesra timetables
           </p>
@@ -105,20 +105,25 @@ export default function TimetablePage() {
       </div>
 
       {data.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border py-16 text-center text-muted-foreground">
-          <FileText className="mb-2 h-10 w-10" />
-          <p>No timetables yet. Upload a PDF or TXT file to get started.</p>
+        <div className="flex flex-col items-center justify-center rounded-[22px] border border-lines bg-surface px-6 py-16 text-center shadow-[0_4px_14px_rgba(37,97,153,.08)]">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-canvas-2">
+            <FileText className="h-6 w-6 text-brand-blue" />
+          </div>
+          <p className="text-lg font-medium text-ink">No data yet</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Upload a PDF or TXT file to get started.
+          </p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data.map((tt) => (
             <div
               key={tt.id}
-              className="group rounded-xl border bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
+              className="group rounded-[22px] border border-lines bg-surface p-5 shadow-[0_4px_14px_rgba(37,97,153,.08)] transition-shadow hover:shadow-[0_14px_40px_rgba(37,97,153,.12)]"
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="font-semibold">
+                  <p className="font-semibold text-ink">
                     {tt.department?.shortCode ?? "—"} — {tt.branch?.name ?? "—"}
                   </p>
                   <p className="text-sm text-muted-foreground">
@@ -138,7 +143,7 @@ export default function TimetablePage() {
                   View
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => handleDelete(tt)}>
-                  <Trash2 className="h-3 w-3 text-destructive" />
+                  <Trash2 className="h-3 w-3 text-error" />
                 </Button>
               </div>
             </div>
@@ -156,17 +161,17 @@ export default function TimetablePage() {
           </DialogHeader>
           {uploadResult && (
             <div className="space-y-3 py-2">
-              <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
+              <div className="flex items-center justify-between rounded-full border border-lines bg-canvas-2/30 px-5 py-3">
                 <span className="text-sm text-muted-foreground">Courses</span>
-                <span className="text-lg font-bold">{uploadResult.courseCount}</span>
+                <span className="text-lg font-bold text-ink">{uploadResult.courseCount}</span>
               </div>
-              <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
+              <div className="flex items-center justify-between rounded-full border border-lines bg-canvas-2/30 px-5 py-3">
                 <span className="text-sm text-muted-foreground">Time Slots</span>
-                <span className="text-lg font-bold">{uploadResult.slotCount}</span>
+                <span className="text-lg font-bold text-ink">{uploadResult.slotCount}</span>
               </div>
-              <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
+              <div className="flex items-center justify-between rounded-full border border-lines bg-canvas-2/30 px-5 py-3">
                 <span className="text-sm text-muted-foreground">Source</span>
-                <span className="text-sm font-medium capitalize">{uploadResult.source}</span>
+                <span className="text-sm font-medium text-ink capitalize">{uploadResult.source}</span>
               </div>
             </div>
           )}
@@ -237,9 +242,9 @@ function TimetableGrid({ timetable }: { timetable: TimetableDetail }) {
     <table className="w-full min-w-[700px] border-collapse text-xs">
       <thead>
         <tr>
-          <th className="border bg-muted p-2 text-left font-medium">Day</th>
+          <th className="border border-lines bg-canvas-2/50 p-2 text-left font-medium text-ink">Day</th>
           {PERIOD_ORDER.map((p) => (
-            <th key={p} className="border bg-muted p-2 text-center font-medium">
+            <th key={p} className="border border-lines bg-canvas-2/50 p-2 text-center font-medium text-ink">
               {p === "LUNCH" ? (
                 <span className="text-muted-foreground">LUNCH</span>
               ) : (
@@ -267,18 +272,18 @@ function TimetableGrid({ timetable }: { timetable: TimetableDetail }) {
       <tbody>
         {DAYS.map((day) => (
           <tr key={day}>
-            <td className="border p-2 font-medium">{day}</td>
+            <td className="border border-lines p-2 font-medium text-ink">{day}</td>
             {PERIOD_ORDER.map((period) => {
               if (period === "LUNCH") {
                 return (
-                  <td key={period} className="border bg-muted/30 p-2 text-center text-muted-foreground">
+                  <td key={period} className="border border-lines bg-canvas-2/30 p-2 text-center text-muted-foreground">
                     —
                   </td>
                 );
               }
               const content = slotsByDay[day]?.[period];
               return (
-                <td key={period} className="border p-2 align-top">
+                <td key={period} className="border border-lines p-2 align-top text-ink">
                   {content ? (
                     <div className="space-y-0.5">
                       {content.split("\n").map((line, i) => (

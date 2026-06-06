@@ -89,7 +89,7 @@ export default function DepartmentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Departments</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Departments</h1>
         <p className="text-sm text-muted-foreground">Manage departments and their short codes</p>
       </div>
 

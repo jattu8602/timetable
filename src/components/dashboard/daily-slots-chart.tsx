@@ -16,25 +16,25 @@ interface DailySlotsChartProps {
 
 export function DailySlotsChart({ data }: DailySlotsChartProps) {
   return (
-    <div className="rounded-xl border bg-card p-6 shadow-sm">
+    <div className="rounded-[22px] bg-card p-6 shadow-[0_4px_14px_rgba(37,97,153,.08)]">
       <h3 className="mb-4 text-sm font-medium text-muted-foreground">
         Slots per Day of Week
       </h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.02 240)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#E7EEF7" />
             <XAxis
               dataKey="day"
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 12, fill: "#7c8294" }}
               tickLine={false}
             />
-            <YAxis tick={{ fontSize: 12 }} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: "#7c8294" }} tickLine={false} />
             <Tooltip />
             <Bar
               dataKey="slots"
               fill="#256199"
-              radius={[4, 4, 0, 0]}
+              radius={[8, 8, 0, 0]}
             />
           </BarChart>
         </ResponsiveContainer>

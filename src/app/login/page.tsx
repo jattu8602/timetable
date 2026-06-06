@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -56,34 +57,32 @@ function LoginForm() {
     <>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="email">
+          <label className="text-sm font-medium text-ink" htmlFor="email">
             Email
           </label>
-          <input
+          <Input
             id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             required
           />
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="password">
+          <label className="text-sm font-medium text-ink" htmlFor="password">
             Password
           </label>
-          <input
+          <Input
             id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             required
           />
         </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p className="text-sm text-error">{error}</p>}
 
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Signing in..." : "Sign In"}
@@ -92,17 +91,17 @@ function LoginForm() {
 
       <div className="relative my-6">
         <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
+          <span className="w-full border-t border-lines" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">
+          <span className="bg-surface px-2 text-muted-foreground">
             Demo Login
           </span>
         </div>
       </div>
 
-      <div className="rounded-lg border bg-muted/50 p-3 text-sm">
-        <p className="font-medium">Demo Credentials</p>
+      <div className="rounded-[14px] border border-lines bg-canvas-2/30 p-4 text-sm">
+        <p className="font-medium text-ink">Demo Credentials</p>
         <p className="mt-1 text-muted-foreground">
           Email: admin@samayak.com
         </p>
@@ -123,8 +122,11 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#256199] to-[#3DA1FF] p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-brand-gradient p-4">
       <div className="mb-8 text-center">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[22px] bg-white/20">
+          <span className="text-2xl font-bold text-white">S</span>
+        </div>
         <h1 className="text-3xl font-bold text-white">Samayak</h1>
         <p className="text-white/80">Academic Operations Platform</p>
       </div>
