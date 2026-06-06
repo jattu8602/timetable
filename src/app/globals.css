@@ -91,7 +91,7 @@
   --secondary: var(--canvas-2);
   --secondary-foreground: var(--brand-mid);
   --muted: var(--canvas-2);
-  --muted-foreground: var(--muted);
+  --muted-foreground: #7c8294;
   --accent: var(--canvas-2);
   --accent-foreground: var(--brand-deep);
   --destructive: var(--error);
