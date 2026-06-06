@@ -66,10 +66,11 @@ export async function processPdf(jobId: string, buffer: Buffer) {
 
     const pageImages = await renderPdfPages(buffer);
 
-    for (let i = 0; i < pageImages.length; i++) {
-      const pageNum = i + 1;
-      updatePage(jobId, pageNum, { status: "ocr" });
-    }
+    job.totalPages = pageImages.length;
+    job.pages = pageImages.map((_, i) => ({
+      pageNum: i + 1,
+      status: "pending" as const,
+    }));
 
     const allResults: { pageNum: number; result: ParsedTimetable }[] = [];
 
