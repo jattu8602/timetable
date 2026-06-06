@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,7 +12,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Upload, Trash2, Eye, FileText, Loader2 } from "lucide-react";
+import { Upload, Trash2, ExternalLink, FileText, Loader2 } from "lucide-react";
 
 interface Timetable {
   id: string;
@@ -25,23 +26,10 @@ interface Timetable {
   _count: { slots: number };
 }
 
-interface TimetableDetail extends Timetable {
-  slots: {
-    id: string;
-    dayOfWeek: string;
-    periodName: string;
-    timeRange: string;
-    subjectDetails: string;
-  }[];
-}
-
-const PERIOD_ORDER = ["I", "II", "III", "IV", "V", "LUNCH", "VI", "VII", "VIII", "IX"];
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-
-export default function TimetablePage() {
+export default function TimetableListPage() {
+  const router = useRouter();
   const [data, setData] = useState<Timetable[]>([]);
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [detail, setDetail] = useState<TimetableDetail | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<{ slotCount: number; courseCount: number; source: string } | null>(null);
 
@@ -82,11 +70,6 @@ export default function TimetablePage() {
     if (!confirm(`Delete timetable for ${item.branch?.name ?? "?"} ${item.semesterName}?`)) return;
     await fetch(`/api/timetables?id=${item.id}`, { method: "DELETE" });
     fetchData();
-  }
-
-  async function handleView(item: Timetable) {
-    const res = await fetch(`/api/timetables/${item.id}`);
-    setDetail(await res.json());
   }
 
   return (
@@ -138,9 +121,9 @@ export default function TimetablePage() {
                 </div>
               </div>
               <div className="mt-4 flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleView(tt)}>
-                  <Eye className="mr-1 h-3 w-3" />
-                  View
+                <Button size="sm" onClick={() => router.push(`/timetable/${tt.id}`)}>
+                  <ExternalLink className="mr-1 h-3 w-3" />
+                  Edit
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => handleDelete(tt)}>
                   <Trash2 className="h-3 w-3 text-error" />
@@ -205,100 +188,6 @@ export default function TimetablePage() {
           </form>
         </DialogContent>
       </Dialog>
-
-      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>
-              {detail && `${detail.department?.shortCode ?? "—"} — ${detail.branch?.name ?? "—"} (${detail.semesterName})`}
-            </DialogTitle>
-            <DialogDescription>
-              {detail && `${detail.academicTerm} · WEF ${new Date(detail.wefDate).toLocaleDateString()}`}
-            </DialogDescription>
-          </DialogHeader>
-
-          {detail && (
-            <div className="overflow-x-auto py-2">
-              <TimetableGrid timetable={detail} />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
-  );
-}
-
-function TimetableGrid({ timetable }: { timetable: TimetableDetail }) {
-  const slotsByDay: Record<string, Record<string, string>> = {};
-  for (const day of DAYS) {
-    slotsByDay[day] = {};
-  }
-  for (const slot of timetable.slots) {
-    if (!slotsByDay[slot.dayOfWeek]) continue;
-    slotsByDay[slot.dayOfWeek][slot.periodName] = slot.subjectDetails;
-  }
-
-  return (
-    <table className="w-full min-w-[700px] border-collapse text-xs">
-      <thead>
-        <tr>
-          <th className="border border-lines bg-canvas-2/50 p-2 text-left font-medium text-ink">Day</th>
-          {PERIOD_ORDER.map((p) => (
-            <th key={p} className="border border-lines bg-canvas-2/50 p-2 text-center font-medium text-ink">
-              {p === "LUNCH" ? (
-                <span className="text-muted-foreground">LUNCH</span>
-              ) : (
-                <>
-                  <div>{p}</div>
-                  <div className="text-[10px] text-muted-foreground">
-                    {p === "VI"
-                      ? "13:30-14:20"
-                      : p === "VII"
-                        ? "14:30-15:20"
-                        : p === "VIII"
-                          ? "15:30-16:20"
-                          : p === "IX"
-                            ? "16:30-17:20"
-                            : ["I", "II", "III", "IV", "V"].includes(p)
-                              ? `0${5 + PERIOD_ORDER.indexOf(p)}:00-0${5 + PERIOD_ORDER.indexOf(p)}:50`
-                              : ""}
-                  </div>
-                </>
-              )}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {DAYS.map((day) => (
-          <tr key={day}>
-            <td className="border border-lines p-2 font-medium text-ink">{day}</td>
-            {PERIOD_ORDER.map((period) => {
-              if (period === "LUNCH") {
-                return (
-                  <td key={period} className="border border-lines bg-canvas-2/30 p-2 text-center text-muted-foreground">
-                    —
-                  </td>
-                );
-              }
-              const content = slotsByDay[day]?.[period];
-              return (
-                <td key={period} className="border border-lines p-2 align-top text-ink">
-                  {content ? (
-                    <div className="space-y-0.5">
-                      {content.split("\n").map((line, i) => (
-                        <div key={i} className="leading-tight">{line}</div>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </td>
-              );
-            })}
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 }

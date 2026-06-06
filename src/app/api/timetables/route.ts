@@ -4,7 +4,11 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET() {
   const data = await prisma.timetable.findMany({
     where: { deletedAt: null },
-    include: { department: true, branch: true, slots: true },
+    include: {
+      department: true,
+      branch: true,
+      _count: { select: { slots: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -12,7 +16,7 @@ export async function GET() {
     ...tt,
     department: tt.department ? { name: tt.department.name, shortCode: tt.department.shortCode } : null,
     branch: tt.branch ? { name: tt.branch.name, program: tt.branch.program } : null,
-    _count: { slots: tt.slots.length },
+    _count: { slots: tt._count.slots },
   }));
 
   return NextResponse.json(result);

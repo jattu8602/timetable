@@ -150,6 +150,8 @@ model TimeSlot {
   subjectDetails String
 
   timetable Timetable @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+
+  @@index([timetableId])
 }
 
 model User {
