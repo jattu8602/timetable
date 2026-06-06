@@ -15,40 +15,7 @@ interface OcrSpaceResponse {
 
 export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   if (buffer.length === 0) return "";
-
-  const text = await extractViaPdfParse(buffer);
-  if (text.trim() && looksLikeTimetable(text)) return text;
-
-  if (!OCR_API_KEY) {
-    console.warn("OCR_SPACE_API_KEY not set");
-    return "";
-  }
-
   return extractViaOcrSpace(buffer);
-}
-
-function looksLikeTimetable(text: string): boolean {
-  if (text.length < 100) return false;
-  const hasCourseCode = /[A-Z]{2,}\d{3}/.test(text);
-  const hasMetadata = /\b(Department|Program|Branch|Semester|Course|Faculty)\b/i.test(text);
-  const hasDayName = /\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)\b/i.test(text);
-  const hasSlotPattern = /[IV]+\s*[:]\s*\d{2}:\d{2}/.test(text);
-  return hasCourseCode || (hasMetadata && hasDayName);
-}
-
-async function extractViaPdfParse(buffer: Buffer): Promise<string> {
-  try {
-    const { PDFParse } = await import("pdf-parse");
-    const parser = new PDFParse({ data: buffer });
-    try {
-      const result = await parser.getText();
-      return result.text;
-    } finally {
-      await parser.destroy();
-    }
-  } catch {
-    return "";
-  }
 }
 
 async function extractViaOcrSpace(buffer: Buffer): Promise<string> {
@@ -58,13 +25,9 @@ async function extractViaOcrSpace(buffer: Buffer): Promise<string> {
 
     const allText: string[] = [];
     for (let i = 0; i < pages.length; i++) {
-      console.log(`OCR page ${i + 1}/${pages.length}...`);
       const text = await ocrImage(pages[i]);
       if (text.trim()) {
         allText.push(text);
-        console.log(`  → ${text.length} chars extracted`);
-      } else {
-        console.log(`  → no text found`);
       }
     }
 
