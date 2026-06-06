@@ -3,12 +3,13 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Upload, CheckCircle2, XCircle, Loader2, ArrowRight } from "lucide-react";
+import { Upload, CheckCircle2, XCircle, Loader2, ArrowRight, Sparkles, FileText } from "lucide-react";
 
 interface JobStatus {
   id: string;
   fileName: string;
-  status: "ocr" | "structuring" | "completed" | "error";
+  status: "ocr" | "ocr_done" | "structuring" | "completed" | "error";
+  text?: string;
   finalTimetableId?: string;
   finalSlotCount?: number;
   finalCourseCount?: number;
@@ -17,6 +18,7 @@ interface JobStatus {
 
 const stageLabels: Record<string, string> = {
   ocr: "Extracting text from PDF...",
+  ocr_done: "Text extracted",
   structuring: "Structuring with AI...",
   completed: "Complete!",
   error: "Failed",
@@ -29,6 +31,7 @@ export default function UploadPage() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [job, setJob] = useState<JobStatus | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -60,6 +63,23 @@ export default function UploadPage() {
     }
   }
 
+  async function handleAnalyze() {
+    if (!jobId) return;
+    setAnalyzing(true);
+    try {
+      const res = await fetch("/api/timetables/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Analysis failed");
+      setAnalyzing(false);
+    }
+  }
+
   useEffect(() => {
     if (!jobId) return;
     const interval = setInterval(async () => {
@@ -69,13 +89,17 @@ export default function UploadPage() {
       setJob(data);
       if (data.status === "completed" || data.status === "error") {
         clearInterval(interval);
+        setAnalyzing(false);
       }
     }, 800);
     return () => clearInterval(interval);
   }, [jobId]);
 
+  const isProcessing = job?.status === "ocr" || job?.status === "structuring";
+  const showText = job?.status === "ocr_done";
+
   return (
-    <div className="mx-auto max-w-lg space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-ink">Upload Timetable</h1>
         <p className="text-sm text-muted-foreground">
@@ -114,46 +138,72 @@ export default function UploadPage() {
           )}
         </div>
       ) : (
-        <div className="rounded-[22px] border border-lines bg-surface p-6 shadow-card-sm">
-          <div className="flex items-center gap-4">
-            {job?.status === "completed" ? (
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-success/10">
-                <CheckCircle2 className="size-6 text-success" />
+        <div className="space-y-4">
+          <div className="rounded-[22px] border border-lines bg-surface p-6 shadow-card-sm">
+            <div className="flex items-center gap-4">
+              {job?.status === "completed" ? (
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-success/10">
+                  <CheckCircle2 className="size-6 text-success" />
+                </div>
+              ) : job?.status === "error" ? (
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-error/10">
+                  <XCircle className="size-6 text-error" />
+                </div>
+              ) : (
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-blue/10">
+                  <Loader2 className="size-6 animate-spin text-brand-blue" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-ink truncate">{job?.fileName}</p>
+                <p className="text-sm text-muted-foreground">
+                  {stageLabels[job?.status ?? "ocr"]}
+                </p>
               </div>
-            ) : job?.status === "error" ? (
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-error/10">
-                <XCircle className="size-6 text-error" />
-              </div>
-            ) : (
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-blue/10">
-                <Loader2 className="size-6 animate-spin text-brand-blue" />
+            </div>
+
+            {job?.status === "completed" && (
+              <div className="mt-5 flex items-center justify-between rounded-[14px] bg-success/5 p-4">
+                <div>
+                  <p className="text-sm font-medium text-ink">
+                    {job.finalCourseCount} courses · {job.finalSlotCount} slots
+                  </p>
+                  <p className="text-xs text-muted-foreground">Imported successfully</p>
+                </div>
+                <Button onClick={() => router.push(`/timetable/${job.finalTimetableId}`)}>
+                  Edit <ArrowRight className="ml-1 size-4" />
+                </Button>
               </div>
             )}
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-ink truncate">{job?.fileName}</p>
-              <p className="text-sm text-muted-foreground">
-                {stageLabels[job?.status ?? "ocr"]}
-              </p>
-            </div>
+
+            {job?.status === "error" && (
+              <div className="mt-4 rounded-[14px] border border-error/30 bg-error/5 p-4 text-sm text-error">
+                {job.error || "Processing failed."}
+              </div>
+            )}
           </div>
 
-          {job?.status === "completed" && (
-            <div className="mt-5 flex items-center justify-between rounded-[14px] bg-success/5 p-4">
-              <div>
-                <p className="text-sm font-medium text-ink">
-                  {job.finalCourseCount} courses · {job.finalSlotCount} slots
-                </p>
-                <p className="text-xs text-muted-foreground">Imported successfully</p>
+          {showText && job?.text && (
+            <div className="rounded-[22px] border border-lines bg-surface p-6 shadow-card-sm space-y-4">
+              <div className="flex items-center gap-2">
+                <FileText className="size-5 text-brand-blue" />
+                <h2 className="font-semibold text-ink">Extracted OCR Text</h2>
               </div>
-              <Button onClick={() => router.push(`/timetable/${job.finalTimetableId}`)}>
-                Edit <ArrowRight className="ml-1 size-4" />
+              <pre className="max-h-80 overflow-y-auto rounded-[14px] bg-canvas p-4 text-xs leading-relaxed text-ink whitespace-pre-wrap font-mono">
+                {job.text}
+              </pre>
+              <Button
+                className="w-full"
+                onClick={handleAnalyze}
+                disabled={analyzing}
+              >
+                {analyzing ? (
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 size-4" />
+                )}
+                {analyzing ? "Structuring..." : "Analyze & Make Timetable"}
               </Button>
-            </div>
-          )}
-
-          {job?.status === "error" && (
-            <div className="mt-4 rounded-[14px] border border-error/30 bg-error/5 p-4 text-sm text-error">
-              {job.error || "Processing failed."}
             </div>
           )}
         </div>

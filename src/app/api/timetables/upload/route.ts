@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createJob, getJob, processPdf } from "@/lib/upload-job";
+import { createJob, getJob, processOcr } from "@/lib/upload-job";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
     const jobId = createJob(file.name);
 
-    processPdf(jobId, buffer).catch(console.error);
+    processOcr(jobId, buffer).catch(console.error);
 
     return NextResponse.json({ jobId, fileName: file.name }, { status: 201 });
   } catch (err) {

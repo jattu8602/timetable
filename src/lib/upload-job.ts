@@ -1,11 +1,10 @@
-import { structureWithOpenAI } from "@/lib/openai-timetable";
 import { importTimetable } from "@/lib/timetable/importer";
-import { ocrPdf } from "@/lib/ocr";
+import { ocrPdf, structureWithMistral } from "@/lib/mistral";
 
 export interface UploadJob {
   id: string;
   fileName: string;
-  status: "ocr" | "structuring" | "completed" | "error";
+  status: "ocr" | "ocr_done" | "structuring" | "completed" | "error";
   text?: string;
   finalTimetableId?: string;
   finalSlotCount?: number;
@@ -33,25 +32,39 @@ export function getJob(jobId: string): UploadJob | undefined {
   return jobs.get(jobId);
 }
 
-export async function processPdf(jobId: string, buffer: Buffer) {
+export async function processOcr(jobId: string, buffer: Buffer) {
   try {
-    const text = await ocrPdf(buffer);
-
     const job = jobs.get(jobId);
     if (!job) return;
 
-    if (!text.trim()) {
+    const text = await ocrPdf(buffer);
+    const current = jobs.get(jobId);
+    if (!current) return;
+
+    current.text = text;
+    current.status = "ocr_done";
+    current.updatedAt = Date.now();
+  } catch (err) {
+    const job = jobs.get(jobId);
+    if (job) {
       job.status = "error";
-      job.error = "No text could be extracted from the PDF.";
+      job.error = err instanceof Error ? err.message : "Unknown error";
       job.updatedAt = Date.now();
-      return;
+    }
+  }
+}
+
+export async function analyzeOcrText(jobId: string) {
+  try {
+    const job = jobs.get(jobId);
+    if (!job || !job.text) {
+      throw new Error("No OCR text available");
     }
 
     job.status = "structuring";
-    job.text = text;
     job.updatedAt = Date.now();
 
-    const parsed = await structureWithOpenAI(text);
+    const parsed = await structureWithMistral(job.text);
 
     if (parsed.slots.length === 0 && parsed.courses.length === 0) {
       job.status = "error";

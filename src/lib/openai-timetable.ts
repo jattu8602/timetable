@@ -46,7 +46,14 @@ export async function structureWithOpenAI(rawText: string): Promise<ParsedTimeta
     throw new Error("No OCR text to structure");
   }
 
+  const textLen = rawText.length;
+  console.log(`[openai] sending ${(textLen / 1024).toFixed(1)}KB of text`);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 180_000);
+
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    signal: controller.signal,
     method: "POST",
     headers: {
       "Authorization": `Bearer ${key}`,
@@ -65,6 +72,7 @@ export async function structureWithOpenAI(rawText: string): Promise<ParsedTimeta
       temperature: 0.1,
     }),
   });
+  clearTimeout(timeout);
 
   if (!response.ok) {
     const error = await response.text();

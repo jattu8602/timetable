@@ -3,14 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { useToast } from "@/lib/toast";
 import { Upload, Trash2, ExternalLink, FileText, Loader2, Plus } from "lucide-react";
 
 interface Timetable {
@@ -27,8 +21,10 @@ interface Timetable {
 
 export default function TimetableListPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [data, setData] = useState<Timetable[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<Timetable | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -42,8 +38,18 @@ export default function TimetableListPage() {
   }, [fetchData]);
 
   async function handleDelete(item: Timetable) {
-    if (!confirm(`Delete timetable for ${item.branch?.name ?? "?"} ${item.semesterName}?`)) return;
-    await fetch(`/api/timetables?id=${item.id}`, { method: "DELETE" });
+    setDeleting(item);
+  }
+
+  async function confirmDelete() {
+    if (!deleting) return;
+    const res = await fetch(`/api/timetables?id=${deleting.id}`, { method: "DELETE" });
+    if (res.ok) {
+      toast(`"${deleting.branch?.name ?? "?"} ${deleting.semesterName}" deleted`, "success");
+    } else {
+      toast("Failed to delete timetable", "error");
+    }
+    setDeleting(null);
     fetchData();
   }
 
@@ -116,6 +122,20 @@ export default function TimetableListPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleting}
+        onOpenChange={(open) => { if (!open) setDeleting(null); }}
+        title="Delete timetable?"
+        description={
+          deleting
+            ? `Are you sure you want to delete the timetable for ${deleting.branch?.name ?? "?"} ${deleting.semesterName}? This action cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }
