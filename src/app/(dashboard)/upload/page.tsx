@@ -36,27 +36,58 @@ const stageLabels: Record<string, string> = {
 export default function UploadPage() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [job, setJob] = useState<JobStatus | null>(null);
-  const [uploading, setUploading] = useState(false);
+  
+  const [activeJobIds, setActiveJobIds] = useState<string[]>([]);
+  const [jobs, setJobs] = useState<Record<string, JobStatus>>({});
+  const [timers, setTimers] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
-  const [seconds, setSeconds] = useState(0);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    const f = e.dataTransfer.files[0];
-    if (f && f.name.endsWith(".pdf")) {
-      setFile(f);
-      setError(null);
-    } else {
-      setError("Please upload a .pdf file");
-    }
+  const pendingIdsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    pendingIdsRef.current = activeJobIds.filter(id => {
+      const job = jobs[id];
+      return !job || (job.status !== "completed" && job.status !== "error");
+    });
+  }, [activeJobIds, jobs]);
+
+  useEffect(() => {
+    const secInterval = setInterval(() => {
+      setTimers(prev => {
+        const next = { ...prev };
+        pendingIdsRef.current.forEach(id => {
+          next[id] = (next[id] || 0) + 1;
+        });
+        return next;
+      });
+    }, 1000);
+
+    const pollInterval = setInterval(() => {
+      pendingIdsRef.current.forEach(async (jobId) => {
+        try {
+          const res = await fetch(`/api/timetables/upload/status/${jobId}`);
+          if (res.ok) {
+            const data = await res.json();
+            // Preserve the original fileName if the API hasn't returned it yet
+            setJobs(prev => ({ 
+              ...prev, 
+              [jobId]: { ...data, fileName: data.fileName || prev[jobId]?.fileName || "Unknown File" } 
+            }));
+          }
+        } catch (e) {
+          // Silently ignore network failures during polling 
+          // (e.g. if the dev server restarts or network drops temporarily)
+        }
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(secInterval);
+      clearInterval(pollInterval);
+    };
   }, []);
 
-  async function handleUpload() {
-    if (!file) return;
-    setUploading(true);
+  const handleUpload = async (file: File) => {
     setError(null);
     const body = new FormData();
     body.append("file", file);
@@ -64,219 +95,180 @@ export default function UploadPage() {
       const res = await fetch("/api/timetables/upload", { method: "POST", body });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setJobId(data.jobId);
+      
+      const newJobId = data.jobId;
+      setJobs(prev => ({ 
+        ...prev, 
+        [newJobId]: { id: newJobId, fileName: file.name, status: "queued" } 
+      }));
+      setActiveJobIds(prev => [newJobId, ...prev]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed");
-    } finally {
-      setUploading(false);
+      setError(e instanceof Error ? e.message : "Upload failed for " + file.name);
     }
-  }
+  };
 
-  useEffect(() => {
-    if (!jobId) return;
-    setSeconds(0);
-    const secInterval = setInterval(() => {
-      setSeconds((s) => s + 1);
-    }, 1000);
-
-    const interval = setInterval(async () => {
-      const res = await fetch(`/api/timetables/upload/status/${jobId}`);
-      if (!res.ok) {
-        clearInterval(interval);
-        clearInterval(secInterval);
-        return;
-      }
-      const data = await res.json();
-      setJob(data);
-      if (data.status === "completed" || data.status === "error") {
-        clearInterval(interval);
-        clearInterval(secInterval);
-      }
-    }, 1000);
-    return () => {
-      clearInterval(interval);
-      clearInterval(secInterval);
-    };
-  }, [jobId]);
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith(".pdf"));
+    if (files.length > 0) {
+      files.forEach(f => handleUpload(f));
+    } else {
+      setError("Please upload .pdf files only");
+    }
+  }, []);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 pb-20">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-ink">Upload Timetable PDF</h1>
         <p className="text-sm text-muted-foreground">
-          Upload a university timetable PDF to parse, structure, and compute analytics in the background.
+          Upload multiple university timetable PDFs side by side. They will process simultaneously in the background.
         </p>
       </div>
 
-      {!jobId ? (
-        <div
-          onDrop={handleDrop}
-          onDragOver={(e) => e.preventDefault()}
-          onClick={() => inputRef.current?.click()}
-          className="flex cursor-pointer flex-col items-center justify-center rounded-[22px] border-2 border-dashed border-line-2 bg-surface px-6 py-16 text-center shadow-card-sm transition-colors hover:border-brand-blue"
-        >
-          <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-canvas-2">
-            <Upload className="size-6 text-brand-blue" />
-          </div>
-          <p className="text-lg font-medium text-ink">
-            {file ? file.name : "Drop your PDF here"}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : "or click to browse"}
-          </p>
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".pdf"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) setFile(f);
-            }}
-          />
-          {file && (
-            <Button
-              className="mt-6"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleUpload();
-              }}
-              disabled={uploading}
-            >
-              {uploading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />}
-              {uploading ? "Uploading PDF..." : "Start Asynchronous Ingestion"}
-            </Button>
-          )}
+      <div
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+        onClick={() => inputRef.current?.click()}
+        className="flex cursor-pointer flex-col items-center justify-center rounded-[22px] border-2 border-dashed border-line-2 bg-surface px-6 py-10 text-center shadow-card-sm transition-colors hover:border-brand-blue"
+      >
+        <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-brand-blue/10">
+          <Upload className="size-5 text-brand-blue" />
         </div>
-      ) : (
-        <div className="space-y-6">
-          <div className="rounded-[22px] border border-lines bg-white p-6 shadow-card-sm">
-            <div className="flex items-center gap-4">
-              {job?.status === "completed" ? (
-                <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-success/10">
-                  <CheckCircle2 className="size-6 text-success" />
-                </div>
-              ) : job?.status === "error" ? (
-                <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-error/10">
-                  <XCircle className="size-6 text-error" />
-                </div>
-              ) : (
-                <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-blue/10">
-                  <Loader2 className="size-6 animate-spin text-brand-blue" />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-ink truncate">{job?.fileName}</p>
-                <p className="text-sm text-muted-foreground">
-                  {stageLabels[job?.status ?? "queued"]}
-                </p>
-                {job?.status !== "completed" && job?.status !== "error" && (
-                  <p className="text-xs text-brand-blue font-semibold mt-1">
-                    Processing time: {seconds}s (Estimated: ~2-3 minutes)
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {job?.status === "error" && (
-              <div className="mt-4 rounded-[14px] border border-error/30 bg-error/5 p-4 text-sm text-error">
-                {job.error || "An error occurred during queue execution."}
-              </div>
-            )}
-          </div>
-
-          {/* Import Summary Results */}
-          {job?.status === "completed" && job.summary && (
-            <div className="space-y-6">
-              <div className="rounded-[22px] border border-lines bg-white p-6 shadow-card-sm space-y-4">
-                <h3 className="text-lg font-bold text-ink border-b pb-2">Import Summary</h3>
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                  <div className="rounded-xl bg-canvas p-3 border">
-                    <p className="text-xs text-muted-foreground font-semibold">Departments</p>
-                    <p className="text-lg font-bold text-ink">
-                      Created: {job.summary.departments.created} · Matched: {job.summary.departments.matched}
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-canvas p-3 border">
-                    <p className="text-xs text-muted-foreground font-semibold">Branches</p>
-                    <p className="text-lg font-bold text-ink">
-                      Created: {job.summary.branches.created} · Matched: {job.summary.branches.matched}
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-canvas p-3 border">
-                    <p className="text-xs text-muted-foreground font-semibold">Rooms</p>
-                    <p className="text-lg font-bold text-ink">
-                      Created: {job.summary.rooms.created} · Matched: {job.summary.rooms.matched}
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-canvas p-3 border">
-                    <p className="text-xs text-muted-foreground font-semibold">Courses</p>
-                    <p className="text-lg font-bold text-ink">
-                      Created: {job.summary.courses.created} · Matched: {job.summary.courses.matched}
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-canvas p-3 border">
-                    <p className="text-xs text-muted-foreground font-semibold">Faculty Members</p>
-                    <p className="text-lg font-bold text-ink">
-                      Created: {job.summary.faculty.created} · Matched: {job.summary.faculty.matched}
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-canvas p-3 border">
-                    <p className="text-xs text-muted-foreground font-semibold">Time Slots</p>
-                    <p className="text-lg font-bold text-ink">
-                      Created: {job.summary.slots.created}
-                    </p>
-                  </div>
-                </div>
-
-                {job.summary.warnings.length > 0 && (
-                  <div className="rounded-[14px] border border-warning/30 bg-warning/5 p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle className="size-4 text-warning" />
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-warning">
-                        Warnings & Edge Cases Flagged
-                      </h4>
-                    </div>
-                    <ul className="list-inside list-disc text-xs text-muted-foreground space-y-1">
-                      {job.summary.warnings.map((w, idx) => (
-                        <li key={idx}>{w}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                <div className="flex justify-end pt-2">
-                  <Button
-                    onClick={() => router.push(`/timetable/${job.finalTimetableId}`)}
-                    className="flex items-center gap-1"
-                  >
-                    View Timetable Grid <ArrowRight className="size-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {job.text && (
-                <div className="rounded-[22px] border border-lines bg-white p-6 shadow-card-sm space-y-3">
-                  <div className="flex items-center gap-2">
-                    <FileText className="size-5 text-brand-blue" />
-                    <h4 className="font-semibold text-ink">Parsed Raw Text</h4>
-                  </div>
-                  <pre className="max-h-60 overflow-y-auto rounded-[14px] bg-canvas p-4 text-[11px] leading-relaxed text-ink whitespace-pre-wrap font-mono">
-                    {job.text}
-                  </pre>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+        <p className="text-lg font-medium text-ink">
+          Click or drop PDF files here
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          You can select multiple files at once
+        </p>
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".pdf"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            const files = Array.from(e.target.files || []);
+            files.forEach(f => {
+              if (f.name.endsWith(".pdf")) handleUpload(f);
+            });
+            e.target.value = "";
+          }}
+        />
+      </div>
 
       {error && (
         <div className="rounded-[14px] border border-error/30 bg-error/5 p-4 text-sm text-error">
           {error}
         </div>
       )}
+
+      {activeJobIds.length > 0 && (
+        <div className="space-y-6 mt-8">
+          <h2 className="text-lg font-semibold text-ink">Processing Queue ({activeJobIds.length})</h2>
+          
+          {activeJobIds.map(jobId => {
+            const job = jobs[jobId];
+            if (!job) return null;
+            
+            return (
+              <div key={jobId} className="space-y-4">
+                <div className="rounded-[22px] border border-lines bg-white p-5 shadow-card-sm flex flex-col gap-4">
+                  <div className="flex items-center gap-4">
+                    {job.status === "completed" ? (
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-success/10">
+                        <CheckCircle2 className="size-5 text-success" />
+                      </div>
+                    ) : job.status === "error" ? (
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-error/10">
+                        <XCircle className="size-5 text-error" />
+                      </div>
+                    ) : (
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-blue/10">
+                        <Loader2 className="size-5 animate-spin text-brand-blue" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-ink truncate text-sm">{job.fileName}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {stageLabels[job.status] || "Processing..."}
+                      </p>
+                      {job.status !== "completed" && job.status !== "error" && (
+                        <p className="text-[11px] text-brand-blue font-semibold mt-1">
+                          Processing time: {timers[jobId] || 0}s (Estimated: ~1-2 minutes)
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {job.status === "error" && (
+                    <div className="rounded-[12px] border border-error/30 bg-error/5 p-3 text-xs text-error">
+                      {job.error || "An error occurred during queue execution."}
+                    </div>
+                  )}
+                  
+                  {job.status === "completed" && job.summary && (
+                    <div className="mt-2 space-y-4">
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        <div className="rounded-lg bg-canvas p-2.5 border">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Departments</p>
+                          <p className="text-sm font-bold text-ink mt-0.5">+{job.summary.departments.created}</p>
+                        </div>
+                        <div className="rounded-lg bg-canvas p-2.5 border">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Branches</p>
+                          <p className="text-sm font-bold text-ink mt-0.5">+{job.summary.branches.created}</p>
+                        </div>
+                        <div className="rounded-lg bg-canvas p-2.5 border">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Rooms</p>
+                          <p className="text-sm font-bold text-ink mt-0.5">+{job.summary.rooms.created}</p>
+                        </div>
+                        <div className="rounded-lg bg-canvas p-2.5 border">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Courses</p>
+                          <p className="text-sm font-bold text-ink mt-0.5">+{job.summary.courses.created}</p>
+                        </div>
+                        <div className="rounded-lg bg-canvas p-2.5 border">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Faculty</p>
+                          <p className="text-sm font-bold text-ink mt-0.5">+{job.summary.faculty.created}</p>
+                        </div>
+                        <div className="rounded-lg bg-canvas p-2.5 border">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Time Slots</p>
+                          <p className="text-sm font-bold text-ink mt-0.5">+{job.summary.slots.created}</p>
+                        </div>
+                      </div>
+
+                      {job.summary.warnings.length > 0 && (
+                        <div className="rounded-[12px] border border-warning/30 bg-warning/5 p-3">
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <AlertTriangle className="size-3.5 text-warning" />
+                            <h4 className="text-[10px] font-bold uppercase tracking-wider text-warning">
+                              Warnings
+                            </h4>
+                          </div>
+                          <ul className="list-inside list-disc text-[11px] text-muted-foreground space-y-0.5 pl-1">
+                            {job.summary.warnings.map((w, idx) => (
+                              <li key={idx}>{w}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end pt-1">
+                        <Button
+                          size="sm"
+                          onClick={() => router.push(`/timetable/${job.finalTimetableId}`)}
+                          className="flex items-center gap-1 text-xs"
+                        >
+                          View Grid <ArrowRight className="size-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
-

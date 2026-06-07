@@ -37,48 +37,38 @@ Built for the Anugat AI engineering assignment.
 
 ---
 
-## Quick Start (Docker Preferred)
+## 🚀 Quick Start (Docker Localhost)
 
-The easiest way to run the full stack locally (Next.js, PostgreSQL, Redis, BullMQ workers) is via Docker Compose.
+The easiest way to evaluate this assignment is to spin up the entire stack locally using Docker. This single command will start **PostgreSQL**, **Redis**, and the **Next.js** application.
 
-### 1. Environment Setup
-
-Create a `.env` file at the root:
-
-```env
-# Docker Internal Network URLs (Do not change for local Docker)
-DATABASE_URL="postgresql://samayak:samayak_secret@postgres:5432/samayak?sslmode=disable"
-REDIS_URL="redis://redis:6379"
-
-# External API Keys (Required for PDF Ingestion)
-MISTRAL_API_KEY="your-mistral-key"
-
-# Auth
-NEXTAUTH_SECRET="super-secret-random-string"
-NEXTAUTH_URL="http://localhost:3000"
-AUTH_SECRET="super-secret-random-string"
-```
-
-### 2. Run the Stack
-
+### 1. Clone the Repository
 ```bash
-docker compose up --build -d
+git clone https://github.com/jattu8602/timetable.git
+cd timetable
 ```
-*This starts the Next.js app on port 3000, PostgreSQL on 5432, and Redis on 6379.*
 
-### 3. Initialize & Seed Database
-
-Once the containers are running, you must generate the tables and populate the default CSE dataset (141 courses, 15 rooms, 13 timetables):
-
+### 2. Environment Variables
+Create a `.env` file at the root. You can safely copy the dummy keys if you just want to run it:
 ```bash
-# Push Prisma schema to the database
-docker compose exec app npx prisma db push
-
-# Seed the data
-docker compose exec app npx tsx prisma/seed.ts
+cp .env.local.txt .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and login with `admin@samayak.com` / `admin123`.
+### 3. Start the Stack
+```bash
+docker-compose up -d --build
+```
+*(This will download the Postgres/Redis images and build the Next.js production image)*
+
+### 4. Seed the Database (Required once)
+```bash
+docker-compose exec app npx prisma db push
+docker-compose exec app npx tsx prisma/seed.ts
+```
+
+### 5. Access the Application
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+- **Email:** `admin@samayak.com`
+- **Password:** `admin123`
 
 ---
 
