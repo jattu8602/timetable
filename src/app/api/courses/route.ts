@@ -32,19 +32,20 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ created, errors }, { status: 201 });
   }
-  const { code, name, credits, type, courseType, branchId, semester, departmentId } = body;
+  const { code, name, credits, type, courseType, branchId, semester, departmentId, teacher } = body;
   if (!code || !name || credits == null || !type || !branchId || !semester || !departmentId) {
     return NextResponse.json({ error: "missing required fields" }, { status: 400 });
   }
   const data = await prisma.course.create({
     data: { code, name, credits, type, courseType: courseType ?? type, branchId, semester, departmentId },
   });
+  await assignFacultyToCourse(data.id, teacher || "TBA", departmentId);
   return NextResponse.json(data, { status: 201 });
 }
 
 export async function PUT(req: NextRequest) {
   const body = await req.json();
-  const { id, code, name, credits, type, courseType, branchId, semester, departmentId } = body;
+  const { id, code, name, credits, type, courseType, branchId, semester, departmentId, teacher } = body;
   if (!id) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
   }
@@ -52,6 +53,9 @@ export async function PUT(req: NextRequest) {
     where: { id },
     data: { code, name, credits, type, courseType, branchId, semester, departmentId },
   });
+  if (teacher !== undefined) {
+    await assignFacultyToCourse(data.id, teacher, departmentId);
+  }
   return NextResponse.json(data);
 }
 
@@ -77,3 +81,36 @@ export async function PATCH(req: NextRequest) {
   });
   return NextResponse.json(data);
 }
+
+async function assignFacultyToCourse(courseId: string, teacherStr: string, departmentId: string) {
+  if (!teacherStr || teacherStr === "TBA") {
+    await prisma.courseFaculty.deleteMany({ where: { courseId } });
+    return;
+  }
+
+  // Split teachers by "&", "/", or ","
+  const teachers = teacherStr.split(/[&/,]/).map(t => t.trim()).filter(Boolean);
+
+  // Delete existing associations
+  await prisma.courseFaculty.deleteMany({ where: { courseId } });
+
+  for (const t of teachers) {
+    const emailPart = t.toLowerCase().replace(/[^a-z]/g, ".");
+    const email = `${emailPart}@bitmesra.ac.in`;
+
+    // Find or create faculty
+    const faculty = await prisma.faculty.upsert({
+      where: { email },
+      update: { name: t, departmentId },
+      create: { name: t, email, departmentId },
+    });
+
+    // Link to course
+    await prisma.courseFaculty.upsert({
+      where: { courseId_facultyId: { courseId, facultyId: faculty.id } },
+      update: {},
+      create: { courseId, facultyId: faculty.id },
+    });
+  }
+}
+

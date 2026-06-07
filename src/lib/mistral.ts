@@ -135,3 +135,70 @@ export async function structureWithMistral(text: string): Promise<ParsedTimetabl
 
   return parsed;
 }
+
+export async function analyzeTimetableImage(pngBase64: string): Promise<{ slots: { dayOfWeek: string; periodName: string; subjectDetails: string }[] }> {
+  const systemPrompt = `You are a university timetable grid layout analyzer.
+Analyze the provided university timetable image carefully.
+Your task is to identify and extract ALL time slots in the timetable grid, matching each class slot to its correct day and time period.
+IMPORTANT: You MUST identify merged cells correctly. If a cell spans multiple time periods (e.g. "AP Lab (Lab 1)" on Tuesday spans Periods I, II, III, IV, and V), you MUST return individual slots for EACH of those periods.
+For example, for a Tuesday class spanning I to V, you should output 5 separate slot entries:
+- Tuesday, Period I: "AP Lab (Lab 1)"
+- Tuesday, Period II: "AP Lab (Lab 1)"
+- Tuesday, Period III: "AP Lab (Lab 1)"
+- Tuesday, Period IV: "AP Lab (Lab 1)"
+- Tuesday, Period V: "AP Lab (Lab 1)"
+
+If a cell is a LUNCH break spanning across days, do NOT output slots for it.
+Periods are labeled I, II, III, IV, V, VI, VII, VIII, IX.
+Days are Monday, Tuesday, Wednesday, Thursday, Friday.
+
+Output format MUST be a valid JSON matching this schema:
+{
+  "slots": [
+    {
+      "dayOfWeek": "Monday",
+      "periodName": "I",
+      "subjectDetails": "OE - I"
+    }
+  ]
+}
+Return ONLY valid JSON. No explanations, no markdown blocks.`;
+
+  const key = getKey();
+  const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "pixtral-12b-2409",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: systemPrompt },
+            { type: "image_url", image_url: `data:image/png;base64,${pngBase64}` }
+          ]
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.1,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Mistral Vision API error (${res.status}): ${err.slice(0, 500)}`);
+  }
+
+  const data = await res.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) {
+    throw new Error("Mistral Vision returned empty response");
+  }
+
+  const parsed = JSON.parse(content);
+  return parsed;
+}
+

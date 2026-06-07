@@ -91,7 +91,7 @@ npx tsx prisma/seed.ts
 ### 2. Departments
 
 - [x] Add department manually (name + unique short code)
-- [ ] Bulk import from Excel/CSV with per-row validation
+- [x] Bulk import from Excel/CSV with per-row validation
 - [x] Searchable, paginated list
 - [x] Edit and delete with confirmation
 - [x] Delete warns if dependent records exist
@@ -102,7 +102,7 @@ npx tsx prisma/seed.ts
 - [x] Capacity required; missing capacity flagged
 - [x] Room type displayed clearly (badge: classroom / lab / other)
 - [x] Rooms unique within a department
-- [ ] Bulk import from Excel/CSV
+- [x] Bulk import from Excel/CSV
 - [x] Search, edit, delete
 - [x] Adding/removing a room updates dashboard analytics
 
@@ -112,37 +112,37 @@ npx tsx prisma/seed.ts
 - [x] Add course (code, name, credits, type)
 - [x] Zero-credit subjects allowed but flagged
 - [x] Credits stored as basis for under-running metric
-- [ ] Bulk import from Excel/CSV
+- [x] Bulk import from Excel/CSV
 - [x] Search, edit, delete
 
 ### 5. Faculty & Users
 
-- [ ] Import from Excel/CSV (name, email, role, department)
-- [ ] Preview parsed rows before committing
+- [x] Import from Excel/CSV (name, email, role, department)
+- [x] Preview parsed rows before committing
 - [x] Handle duplicates gracefully (skip or merge)
 - [x] Roles: admin, coordinator, professor, HOD, dean — with visual distinction
 - [x] Searchable, paginated list
-- [ ] Recoverable deletes (not instantly destructive)
+- [x] Recoverable deletes (not instantly destructive)
 
 ### 6. Timetable PDF Ingestion
 
 - [x] File upload area accepting BIT Mesra format PDF
-- [ ] Asynchronous processing (BullMQ queue)
-- [ ] Live progress feedback (queued → parsing → integrating → done)
+- [x] Asynchronous processing (BullMQ queue)
+- [x] Live progress feedback (queued → parsing → integrating → done)
 - [x] Extract: department, branch, slots, courses, rooms, faculty
 - [x] Create new entities; match existing ones (no duplicates)
-- [ ] Import summary: created, matched, unparsable rows with reasons
-- [ ] Analytics auto-recompute on completion
+- [x] Import summary: created, matched, unparsable rows with reasons
+- [x] Analytics auto-recompute on completion
 - [x] Format-aware parser — works for any department, not hardcoded to CSE
 - [x] Graceful degradation on partial/malformed PDFs
-- [ ] Pending/incomplete state for partial imports
+- [x] Pending/incomplete state for partial imports
 
 ### 7. Authentication & Authorization
 
 - [x] NextAuth.js v5 with credentials provider
 - [x] JWT session strategy (Edge Runtime compatible)
 - [x] Demo login section on login page
-- [x] RBAC middleware — route protection per role
+- [x] RBAC middleware — role protection per role
 - [x] 403 on unauthorized access
 - [x] Correlation ID on every request for tracing
 

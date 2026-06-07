@@ -41,6 +41,7 @@ export default function UploadPage() {
   const [job, setJob] = useState<JobStatus | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [seconds, setSeconds] = useState(0);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -73,19 +74,29 @@ export default function UploadPage() {
 
   useEffect(() => {
     if (!jobId) return;
+    setSeconds(0);
+    const secInterval = setInterval(() => {
+      setSeconds((s) => s + 1);
+    }, 1000);
+
     const interval = setInterval(async () => {
       const res = await fetch(`/api/timetables/upload/status/${jobId}`);
       if (!res.ok) {
         clearInterval(interval);
+        clearInterval(secInterval);
         return;
       }
       const data = await res.json();
       setJob(data);
       if (data.status === "completed" || data.status === "error") {
         clearInterval(interval);
+        clearInterval(secInterval);
       }
     }, 1000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      clearInterval(secInterval);
+    };
   }, [jobId]);
 
   return (
@@ -159,6 +170,11 @@ export default function UploadPage() {
                 <p className="text-sm text-muted-foreground">
                   {stageLabels[job?.status ?? "queued"]}
                 </p>
+                {job?.status !== "completed" && job?.status !== "error" && (
+                  <p className="text-xs text-brand-blue font-semibold mt-1">
+                    Processing time: {seconds}s (Estimated: ~20s total)
+                  </p>
+                )}
               </div>
             </div>
 

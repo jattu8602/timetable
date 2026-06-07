@@ -56,6 +56,38 @@ export const timetableWorker = new Worker<JobData>(
       console.log(`[worker] Importing structured timetable into DB for job ${jobId}...`);
       const { timetable, summary } = await importTimetable(parsed);
 
+      // Render first page of PDF to PNG and save in public/uploads/${timetable.id}.png
+      try {
+        const { renderPdfToPng } = await import("./pdf-renderer");
+        const fs = await import("node:fs");
+        const path = await import("node:path");
+
+        console.log(`[worker] Rendering PDF first page to PNG for timetable ${timetable.id}...`);
+        const pngBuffer = await renderPdfToPng(buffer);
+        const uploadsDir = path.join(process.cwd(), "public", "uploads");
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        fs.writeFileSync(path.join(uploadsDir, `${timetable.id}.png`), pngBuffer);
+        console.log(`[worker] Saved visual PNG of timetable to public/uploads/${timetable.id}.png`);
+      } catch (renderErr) {
+        console.error(`[worker] Error rendering PDF visual snapshot:`, renderErr);
+      }
+
+      // Upload PDF asynchronously to ImageKit if credentials are configured
+      try {
+        const { uploadToImageKit } = await import("./imagekit");
+        uploadToImageKit(buffer, `${timetable.id}.pdf`).then((url) => {
+          if (url) {
+            console.log(`[worker] Timetable PDF uploaded to ImageKit: ${url}`);
+          }
+        }).catch((err) => {
+          console.error(`[worker] ImageKit upload promise rejected:`, err);
+        });
+      } catch (uploadErr) {
+        console.error(`[worker] Error during ImageKit upload setup:`, uploadErr);
+      }
+
       // 3. Mark completed
       jobData.status = "completed";
       jobData.finalTimetableId = timetable.id;

@@ -18,10 +18,37 @@ export async function GET(
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
+  // Fetch courses scoped to this branch and semester
+  const courses = await prisma.course.findMany({
+    where: {
+      branchId: data.branchId,
+      semester: data.semesterName,
+      deletedAt: null,
+    },
+    include: {
+      faculty: {
+        include: {
+          faculty: true,
+        },
+      },
+    },
+  });
+
+  const formattedCourses = courses.map((c) => ({
+    id: c.id,
+    code: c.code,
+    name: c.name,
+    credits: c.credits,
+    type: c.type,
+    courseType: c.courseType,
+    teacher: c.faculty.map((f) => f.faculty.name).join(" & ") || "TBA",
+  }));
+
   return NextResponse.json({
     ...data,
     department: data.department ? { name: data.department.name, shortCode: data.department.shortCode } : null,
     branch: data.branch ? { name: data.branch.name, program: data.branch.program } : null,
     slots: data.slots,
+    courses: formattedCourses,
   });
 }
