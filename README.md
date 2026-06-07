@@ -37,43 +37,50 @@ Built for the Anugat AI engineering assignment.
 
 ---
 
-## Quick Start
+## Quick Start (Docker Preferred)
 
-### Prerequisites
+The easiest way to run the full stack locally (Next.js, PostgreSQL, Redis, BullMQ workers) is via Docker Compose.
 
-- Node.js 20+
-- npm
+### 1. Environment Setup
 
-### Local Development
-
-```bash
-npm install
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-### Environment Variables
-
-Copy `.env` template:
+Create a `.env` file at the root:
 
 ```env
-DATABASE_URL=           # NeonDB PostgreSQL connection string
-REDIS_URL=              # Upstash Redis REST endpoint
-UPSTASH_REDIS_TOKEN=    # Upstash Redis token
-OCR_SPACE_API_KEY=      # OCR.space API key
-OPENAI_API_KEY=         # OpenAI API key (for structuring OCR text)
-NEXTAUTH_SECRET=        # Any random string
-NEXTAUTH_URL=           # http://localhost:3000
-AUTH_SECRET=            # Same as NEXTAUTH_SECRET
+# Docker Internal Network URLs (Do not change for local Docker)
+DATABASE_URL="postgresql://samayak:samayak_secret@postgres:5432/samayak?sslmode=disable"
+REDIS_URL="redis://redis:6379"
+
+# External API Keys (Required for PDF Ingestion)
+OCR_SPACE_API_KEY="your-ocr-space-key"
+OPENAI_API_KEY="your-openai-key"
+MISTRAL_API_KEY="your-mistral-key"
+
+# Auth
+NEXTAUTH_SECRET="super-secret-random-string"
+NEXTAUTH_URL="http://localhost:3000"
+AUTH_SECRET="super-secret-random-string"
 ```
 
-### Seed the Database
+### 2. Run the Stack
 
 ```bash
-npx prisma db push
-npx tsx prisma/seed.ts
+docker compose up --build -d
 ```
+*This starts the Next.js app on port 3000, PostgreSQL on 5432, and Redis on 6379.*
+
+### 3. Initialize & Seed Database
+
+Once the containers are running, you must generate the tables and populate the default CSE dataset (141 courses, 15 rooms, 13 timetables):
+
+```bash
+# Push Prisma schema to the database
+docker compose exec app npx prisma db push
+
+# Seed the data
+docker compose exec app npx tsx prisma/seed.ts
+```
+
+Open [http://localhost:3000](http://localhost:3000) and login with `admin@samayak.com` / `admin123`.
 
 ---
 
@@ -253,47 +260,32 @@ PDF Upload
 
 ---
 
-## Deployment
+## Deployment (Production)
 
-### Vercel (Serverless)
+Because this application relies on a background worker queue (`BullMQ`) and requires a persistent file system for PDF/PNG extraction, **deploying via Docker is strictly recommended over Serverless (Vercel).**
 
-1. Connect GitHub repository
-2. Set environment variables from `.env.prod`
-3. Build command: `npx prisma generate && next build`
-4. Deploy
+### Recommended Platforms
+The best platforms to deploy this Dockerized Next.js application are:
+1. **[Render.com](https://render.com/)** (Highly Recommended)
+2. **[Railway.app](https://railway.app/)**
 
-### Docker Setup (Local Offline Stack)
+Both platforms allow you to deploy a Docker container natively while providing managed PostgreSQL and Redis addons with a single click.
 
-To run the entire stack locally in containerized mode (including local PostgreSQL, local Redis, the Next.js app, and the background queue worker):
+### CI/CD via GitHub Actions (GHCR)
 
-1. Update your `.env` variables to connect to the internal Docker network services:
-   ```env
-   # PostgreSQL container connection string
-   DATABASE_URL="postgresql://samayak:samayak_secret@postgres:5432/samayak?sslmode=disable"
-   
-   # Redis container connection string (TCP protocol for BullMQ)
-   REDIS_URL="redis://redis:6379"
-   
-   # External API Keys (Required for OCR PDF ingestion)
-   MISTRAL_API_KEY="your-mistral-api-key"
-   OCR_SPACE_API_KEY="your-ocr-space-api-key"
-   OPENAI_API_KEY="your-openai-api-key"
-   ```
+We have configured a GitHub Actions workflow (`.github/workflows/docker-publish.yml`) that automatically builds your Docker image and pushes it to the **GitHub Container Registry (GHCR)** whenever you push to `main`.
 
-2. Run the compose environment:
-   ```bash
-   docker compose up --build
-   ```
+1. Push your code to GitHub.
+2. The Action will build the image and publish it to `ghcr.io/your-username/admin_samayak:main`.
+3. In Render or Railway, simply select **"Deploy from existing image"** and point it to your public `ghcr.io` URL.
 
-3. Initialize the database schema and seed the CSE timetable data inside the running app container:
-   ```bash
-   # Generate database tables
-   docker compose exec app npx prisma db push
-   # Seed CSE timetable data and admin user credentials
-   docker compose exec app npx tsx prisma/seed.ts
-   ```
+### Production Seeding
 
-4. The application is now fully running and accessible at [http://localhost:3000](http://localhost:3000).
+Once deployed to your production environment (Render/Railway), you must SSH into the container instance via the platform's CLI/Console and run:
+```bash
+npx prisma db push
+npx tsx prisma/seed.ts
+```
 
 ---
 
