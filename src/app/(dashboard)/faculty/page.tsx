@@ -133,6 +133,12 @@ export default function FacultyAndUsersPage() {
     fetchData();
   }
 
+  async function handleDeleteBulkFaculty(items: Faculty[]) {
+    const ids = items.map((i) => i.id).join(",");
+    await fetch(`/api/faculty?ids=${ids}`, { method: "DELETE" });
+    fetchData();
+  }
+
   async function handleRestoreFaculty(item: Faculty) {
     await fetch("/api/faculty", {
       method: "PATCH",
@@ -197,6 +203,12 @@ export default function FacultyAndUsersPage() {
   async function handleDeleteUser(item: User) {
     if (!confirm(`Soft-delete user "${item.name}"?`)) return;
     await fetch(`/api/users?id=${item.id}`, { method: "DELETE" });
+    fetchData();
+  }
+
+  async function handleDeleteBulkUser(items: User[]) {
+    const ids = items.map((i) => i.id).join(",");
+    await fetch(`/api/users?ids=${ids}`, { method: "DELETE" });
     fetchData();
   }
 
@@ -283,6 +295,7 @@ export default function FacultyAndUsersPage() {
           onAdd={openCreateFaculty}
           onEdit={openEditFaculty}
           onDelete={handleDeleteFaculty}
+          onDeleteBulk={handleDeleteBulkFaculty}
           onRestore={handleRestoreFaculty}
           deletedKey="deletedAt"
           addLabel="Add Faculty"
@@ -299,6 +312,7 @@ export default function FacultyAndUsersPage() {
           onAdd={openCreateUser}
           onEdit={openEditUser}
           onDelete={handleDeleteUser}
+          onDeleteBulk={handleDeleteBulkUser}
           onRestore={handleRestoreUser}
           deletedKey="deletedAt"
           addLabel="Add User"

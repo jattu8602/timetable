@@ -127,6 +127,12 @@ export default function RoomsPage() {
     fetchData();
   }
 
+  async function handleDeleteBulk(items: Room[]) {
+    const ids = items.map((i) => i.id).join(",");
+    await fetch(`/api/rooms?ids=${ids}`, { method: "DELETE" });
+    fetchData();
+  }
+
   async function handleRestore(item: Room) {
     await fetch("/api/rooms", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: item.id }) });
     fetchData();
@@ -147,6 +153,7 @@ export default function RoomsPage() {
         onAdd={openCreate}
         onEdit={openEdit}
         onDelete={handleDelete}
+        onDeleteBulk={handleDeleteBulk}
         onRestore={handleRestore}
         deletedKey="deletedAt"
         addLabel="Add Room"

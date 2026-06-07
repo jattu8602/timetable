@@ -14,9 +14,29 @@ export default auth((req) => {
   }
 
   if (!isAuth) {
+    if (pathname.startsWith("/api")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Role Authorization (RBAC) - Admin only
+  const role = (req.auth?.user as { role?: string })?.role;
+  if (role !== "admin") {
+    if (pathname === "/unauthorized") {
+      return NextResponse.next();
+    }
+
+    if (pathname.startsWith("/api")) {
+      return NextResponse.json(
+        { error: "Forbidden: Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
 
   const correlationId = crypto.randomUUID();

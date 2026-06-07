@@ -81,6 +81,12 @@ export default function DepartmentsPage() {
     fetchData();
   }
 
+  async function handleDeleteBulk(items: Department[]) {
+    const ids = items.map((i) => i.id).join(",");
+    await fetch(`/api/departments?ids=${ids}`, { method: "DELETE" });
+    fetchData();
+  }
+
   async function handleRestore(item: Department) {
     await fetch("/api/departments", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: item.id }) });
     fetchData();
@@ -101,6 +107,7 @@ export default function DepartmentsPage() {
         onAdd={openCreate}
         onEdit={openEdit}
         onDelete={handleDelete}
+        onDeleteBulk={handleDeleteBulk}
         onRestore={handleRestore}
         deletedKey="deletedAt"
         addLabel="Add Department"

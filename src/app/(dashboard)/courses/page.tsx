@@ -146,6 +146,13 @@ export default function CoursesPage() {
     setData(await res.json());
   }
 
+  async function handleDeleteBulk(items: Course[]) {
+    const ids = items.map((i) => i.id).join(",");
+    await fetch(`/api/courses?ids=${ids}`, { method: "DELETE" });
+    const res = await fetch("/api/courses");
+    setData(await res.json());
+  }
+
   async function handleRestore(item: Course) {
     await fetch("/api/courses", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: item.id }) });
     const res = await fetch("/api/courses");
@@ -169,6 +176,7 @@ export default function CoursesPage() {
         onAdd={openCreate}
         onEdit={openEdit}
         onDelete={handleDelete}
+        onDeleteBulk={handleDeleteBulk}
         onRestore={handleRestore}
         deletedKey="deletedAt"
         addLabel="Add Course"

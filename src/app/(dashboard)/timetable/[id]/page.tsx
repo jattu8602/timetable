@@ -120,6 +120,7 @@ export default function TimetableDetailPage() {
 
   const [draggedSlotId, setDraggedSlotId] = useState<string | null>(null);
   const [dragOverCell, setDragOverCell] = useState<{ day: string; period: string } | null>(null);
+  const [hoveredCourseToken, setHoveredCourseToken] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -569,6 +570,13 @@ export default function TimetableDetailPage() {
       skipCount = colSpan - 1;
 
       const isOver = dragOverCell?.day === day && dragOverCell?.period === period;
+      
+      const subjectName = slot ? slot.subjectDetails.replace(/\s*\([^)]+\)/, "").trim() : "";
+      const isHovered = hoveredCourseToken && subjectName && (
+        subjectName === hoveredCourseToken || 
+        hoveredCourseToken.includes(subjectName) || 
+        subjectName.includes(hoveredCourseToken)
+      );
 
       cells.push(
         <td
@@ -580,9 +588,15 @@ export default function TimetableDetailPage() {
           }}
           onDragLeave={() => setDragOverCell(null)}
           onDrop={(e) => handleDrop(e, day, period)}
+          onMouseEnter={() => {
+            if (subjectName && subjectName !== "—") setHoveredCourseToken(subjectName);
+          }}
+          onMouseLeave={() => setHoveredCourseToken(null)}
           className={`border border-[#256199]/20 p-1.5 align-middle text-center min-h-[64px] transition-all relative ${
             isOver ? "bg-[#256199]/10 border-dashed border-[#256199] z-10" : ""
-          } ${colSpan > 1 ? "bg-brand-blue/5 border-[#256199]/30 shadow-[inset_0_1px_3px_rgba(37,97,153,0.06)]" : ""}`}
+          } ${colSpan > 1 ? "bg-brand-blue/5 border-[#256199]/30 shadow-[inset_0_1px_3px_rgba(37,97,153,0.06)]" : ""} ${
+            isHovered ? "ring-2 ring-[#256199] bg-[#256199]/10 scale-[1.02] z-20 shadow-lg" : ""
+          }`}
         >
           {slot ? (
             <div
@@ -777,9 +791,23 @@ export default function TimetableDetailPage() {
                     const names = isGroup ? course.name.split(" / ") : [course.name];
                     const teachers = isGroup ? course.teacher.split(" / ") : [course.teacher];
                     const shortNames = course.shortName ? (isGroup ? course.shortName.split(" / ") : [course.shortName]) : [];
+                    
+                    const courseTokenToMatch = course.shortName || course.code;
+                    const isRowHovered = hoveredCourseToken && (
+                      courseTokenToMatch === hoveredCourseToken ||
+                      courseTokenToMatch.includes(hoveredCourseToken) ||
+                      hoveredCourseToken.includes(courseTokenToMatch)
+                    );
 
                     return (
-                      <tr key={course.id} className="border-b last:border-0 hover:bg-canvas/50">
+                      <tr 
+                        key={course.id} 
+                        className={`border-b last:border-0 hover:bg-canvas/50 transition-colors ${
+                          isRowHovered ? "bg-[#256199]/10 outline outline-2 outline-[#256199] outline-offset-[-2px] z-10 relative shadow-sm" : ""
+                        }`}
+                        onMouseEnter={() => setHoveredCourseToken(courseTokenToMatch)}
+                        onMouseLeave={() => setHoveredCourseToken(null)}
+                      >
                         {/* Course Code */}
                         <td className="p-0 border-r align-middle">
                           {codes.map((c, idx) => (

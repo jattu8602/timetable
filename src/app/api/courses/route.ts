@@ -66,6 +66,14 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
+  const ids = searchParams.get("ids");
+  
+  if (ids) {
+    const idArray = ids.split(",");
+    await prisma.course.updateMany({ where: { id: { in: idArray } }, data: { deletedAt: new Date() } });
+    return NextResponse.json({ success: true });
+  }
+
   if (!id) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
   }

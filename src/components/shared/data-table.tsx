@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -11,6 +12,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { ArrowUpDown, Plus, Pencil, Trash2, RotateCcw, Upload, Search } from "lucide-react";
 import { BulkImportDialog } from "@/components/shared/bulk-import-dialog";
 
@@ -30,6 +39,7 @@ interface DataTableProps<T> {
   onAdd?: () => void;
   onEdit?: (item: T) => void;
   onDelete?: (item: T) => void;
+  onDeleteBulk?: (items: T[]) => void;
   onRestore?: (item: T) => void;
   deletedKey?: string;
   addLabel?: string;
@@ -48,6 +58,7 @@ export function DataTable<T>({
   onAdd,
   onEdit,
   onDelete,
+  onDeleteBulk,
   onRestore,
   deletedKey,
   addLabel = "Add New",
@@ -60,7 +71,8 @@ export function DataTable<T>({
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [importOpen, setImportOpen] = useState(false);
-
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
 
   const filtered = searchable
     ? data.filter((item) => {
@@ -93,6 +105,14 @@ export function DataTable<T>({
     }
   }
 
+  function handleBulkDelete() {
+    if (!onDeleteBulk) return;
+    const itemsToDelete = data.filter((item) => selected.has(keyExtractor(item)));
+    onDeleteBulk(itemsToDelete);
+    setSelected(new Set());
+    setBulkConfirmOpen(false);
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -108,6 +128,12 @@ export function DataTable<T>({
           </div>
         )}
         <div className="flex flex-wrap items-center gap-2 max-sm:w-full max-sm:justify-end">
+          {onDeleteBulk && selected.size > 0 && (
+            <Button variant="destructive" size="sm" onClick={() => setBulkConfirmOpen(true)}>
+              <Trash2 className="mr-1 h-4 w-4" />
+              Delete Selected ({selected.size})
+            </Button>
+          )}
           {bulkImportEndpoint && (
             <>
               <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
@@ -137,6 +163,17 @@ export function DataTable<T>({
         <Table>
           <TableHeader>
             <TableRow>
+              {onDeleteBulk && (
+                <TableHead className="w-[50px] text-center pl-4">
+                  <Checkbox 
+                    checked={sorted.length > 0 && selected.size === sorted.length}
+                    onCheckedChange={(c) => {
+                      if (c) setSelected(new Set(sorted.map(keyExtractor)));
+                      else setSelected(new Set());
+                    }}
+                  />
+                </TableHead>
+              )}
               {columns.map((col) => (
                 <TableHead key={String(col.key)}>
                   {col.sortable ? (
@@ -159,65 +196,101 @@ export function DataTable<T>({
             {sorted.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length + (onEdit || onDelete ? 1 : 0)}
+                  colSpan={columns.length + (onEdit || onDelete ? 1 : 0) + (onDeleteBulk ? 1 : 0)}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No results
                 </TableCell>
               </TableRow>
             ) : (
-              sorted.map((item) => (
-                <TableRow key={keyExtractor(item)}>
-                  {columns.map((col) => (
-                    <TableCell key={String(col.key)}>
-                      {col.render
-                        ? col.render(item)
-                        : String(
-                            (item as Record<string, unknown>)[col.key as string] ?? ""
-                          )}
-                    </TableCell>
-                  ))}
-                  {(onEdit || onDelete || onRestore) && (
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {onEdit && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onEdit(item)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {deletedKey && onRestore && (item as Record<string, unknown>)[deletedKey]
-                          ? (
+              sorted.map((item) => {
+                const id = keyExtractor(item);
+                return (
+                  <TableRow key={id}>
+                    {onDeleteBulk && (
+                      <TableCell className="pl-4">
+                        <Checkbox 
+                          checked={selected.has(id)}
+                          onCheckedChange={(c) => {
+                            const next = new Set(selected);
+                            if (c) next.add(id);
+                            else next.delete(id);
+                            setSelected(next);
+                          }}
+                        />
+                      </TableCell>
+                    )}
+                    {columns.map((col) => (
+                      <TableCell key={String(col.key)}>
+                        {col.render
+                          ? col.render(item)
+                          : String(
+                              (item as Record<string, unknown>)[col.key as string] ?? ""
+                            )}
+                      </TableCell>
+                    ))}
+                    {(onEdit || onDelete || onRestore) && (
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {onEdit && (
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => onRestore(item)}
-                              title="Restore"
+                              onClick={() => onEdit(item)}
                             >
-                              <RotateCcw className="h-4 w-4 text-success" />
-                            </Button>
-                          )
-                          : onDelete && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => onDelete(item)}
-                            >
-                              <Trash2 className="h-4 w-4 text-error" />
+                              <Pencil className="h-4 w-4" />
                             </Button>
                           )}
-                      </div>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))
+                          {deletedKey && onRestore && (item as Record<string, unknown>)[deletedKey]
+                            ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => onRestore(item)}
+                                title="Restore"
+                              >
+                                <RotateCcw className="h-4 w-4 text-success" />
+                              </Button>
+                            )
+                            : onDelete && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => onDelete(item)}
+                              >
+                                <Trash2 className="h-4 w-4 text-error" />
+                              </Button>
+                            )}
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={bulkConfirmOpen} onOpenChange={setBulkConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Bulk Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {selected.size} items? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleBulkDelete}>
+              Confirm Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
