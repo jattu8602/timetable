@@ -17,6 +17,7 @@ interface ParsedTimetable {
   courses: {
     code: string;
     name: string;
+    shortName: string;
     type: string;
     credits: number;
     teacher: string;
@@ -35,7 +36,10 @@ RULES:
 3. Period time ranges (BIT Mesra): I=08:00-08:50, II=09:00-09:50, III=10:00-10:50, IV=11:00-11:50, V=12:00-12:50, VI=13:30-14:20, VII=14:30-15:20, VIII=15:30-16:20, IX=16:30-17:20.
 4. Clean up OCR artifacts.
 5. If metadata fields are missing, infer from context or use reasonable defaults.
-6. Return ONLY valid JSON, no markdown, no explanation.`;
+6. Return ONLY valid JSON, no markdown, no explanation.
+7. For courses, you MUST extract a \`shortName\` (e.g., "AIML", "CNS", "CoI", "CD", "ES Lab") that exactly matches the abbreviation used in the timetable slots.
+8. VERY IMPORTANT OCR CORRECTION: "Col" is almost always an OCR error for "CoI" (Constitution of India). If you see "Col / 219" or similar, parse the subject as "CoI" and the room as "219".
+9. ROOM NUMBER FORMATTING: The UI only highlights room numbers if they are enclosed in parentheses. If the OCR text has a slash like "CS - II / 233A" or "EE / Room 4", you MUST convert it to "CS - II (233A)" or "EE (Room 4)". Always wrap the room portion in parentheses!`;
 
 function getKey(): string {
   const key = process.env.MISTRAL_API_KEY;

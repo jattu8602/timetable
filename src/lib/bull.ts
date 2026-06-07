@@ -28,3 +28,7 @@ export function getRedisConnection(): IORedis {
 export const timetableQueue = new Queue("timetable-ingestion", {
   connection: getRedisConnection() as any,
 });
+
+export const importQueue = new Queue("import-jobs", {
+  connection: getRedisConnection() as any,
+});

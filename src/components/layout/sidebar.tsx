@@ -1,5 +1,5 @@
 "use client";
-
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -31,8 +31,10 @@ export function Sidebar({
   collapsed?: boolean;
 }) {
   const pathname = usePathname();
+  const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
   return (
+    <>
     <aside className="flex h-full w-full flex-col overflow-hidden rounded-[24px] border border-lines bg-surface shadow-card-md">
       {/* Sidebar Header (Logo) */}
       <div
@@ -96,7 +98,7 @@ export function Sidebar({
       {/* Logout Action */}
       <div className={collapsed ? "p-[8px]" : "p-[12px]"}>
         <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => setShowLogoutPopup(true)}
           title={collapsed ? "Log out" : undefined}
           className={`flex items-center rounded-[16px] bg-black text-[15px] font-semibold text-white transition-all hover:bg-[#1c1c22] [&>svg]:h-[18px] [&>svg]:w-[18px] [&>svg]:stroke-white [&>svg]:stroke-[2] [&>svg]:fill-none ${
             collapsed
@@ -109,6 +111,32 @@ export function Sidebar({
         </button>
       </div>
     </aside>
+      {showLogoutPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-[400px] rounded-[24px] border border-lines bg-surface p-6 shadow-card-xl animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-[20px] font-bold text-ink">Confirm Logout</h3>
+            <p className="mt-2 text-[15px] text-ink-soft">Are you sure you want to log out?</p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setShowLogoutPopup(false)}
+                className="rounded-xl px-5 py-2.5 text-[15px] font-semibold text-ink-soft hover:bg-[#f1f7ff] hover:text-ink transition-colors"
+              >
+                No
+              </button>
+              <button
+                onClick={() => {
+                  setShowLogoutPopup(false);
+                  signOut({ callbackUrl: "/login" });
+                }}
+                className="rounded-xl bg-black px-5 py-2.5 text-[15px] font-semibold text-white hover:bg-[#1c1c22] transition-colors"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

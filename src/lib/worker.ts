@@ -2,6 +2,10 @@ import { Worker, Job } from "bullmq";
 import { getRedisConnection } from "./bull";
 import { ocrPdf, structureWithMistral } from "./mistral";
 import { importTimetable } from "./timetable/importer";
+import * as xlsx from "xlsx";
+import { parseCSV } from "./csv";
+import { prisma } from "./prisma";
+import { RoomType, CourseType, UserRole } from "@prisma/client";
 
 interface JobData {
   jobId: string;
@@ -57,6 +61,7 @@ export const timetableWorker = new Worker<JobData>(
       const { timetable, summary } = await importTimetable(parsed);
 
       // Render first page of PDF to PNG and save in public/uploads/${timetable.id}.png
+      /*
       try {
         const { renderPdfToPng } = await import("./pdf-renderer");
         const fs = await import("node:fs");
@@ -73,6 +78,8 @@ export const timetableWorker = new Worker<JobData>(
       } catch (renderErr) {
         console.error(`[worker] Error rendering PDF visual snapshot:`, renderErr);
       }
+      */
+      console.log(`[worker] Skipped rendering PDF to PNG for stability.`);
 
       // Upload PDF asynchronously to ImageKit if credentials are configured
       try {
@@ -123,4 +130,183 @@ export const timetableWorker = new Worker<JobData>(
 
 timetableWorker.on("failed", (job, err) => {
   console.error(`[worker] Job failed:`, job?.id, err);
+});
+
+export const importWorker = new Worker(
+  "import-jobs",
+  async (job: Job) => {
+    const { entity, fileName, fileData, duplicateAction } = job.data;
+    const buffer = Buffer.from(fileData, "base64");
+    
+    let rows: Record<string, string>[] = [];
+    
+    if (fileName.endsWith(".csv")) {
+      const text = buffer.toString("utf-8");
+      rows = parseCSV(text).rows;
+    } else if (fileName.endsWith(".xlsx")) {
+      const workbook = xlsx.read(buffer, { type: "buffer" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      rows = xlsx.utils.sheet_to_json(sheet);
+    } else {
+      throw new Error("Unsupported file type");
+    }
+
+    if (rows.length === 0) throw new Error("No data found in file");
+
+    let created = 0, updated = 0, skipped = 0;
+    const errors: string[] = [];
+
+    await job.updateProgress({ processed: 0, total: rows.length });
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        if (entity === "departments" || !entity) { // fallback for older jobs
+          const name = String(row["name"] || row["Name"] || "").trim();
+          const shortCode = String(row["shortCode"] || row["Short Code"] || row["shortcode"] || row["departmentShortCode"] || "").trim();
+
+          if (!name || !shortCode) throw new Error("Missing name or shortCode");
+
+          const existing = await prisma.department.findUnique({ where: { shortCode } });
+          if (existing) {
+            if (duplicateAction === "merge") {
+              await prisma.department.update({ where: { shortCode }, data: { name } });
+              updated++;
+            } else skipped++;
+          } else {
+            await prisma.department.create({ data: { name, shortCode } });
+            created++;
+          }
+        } else if (entity === "rooms") {
+          const number = String(row["number"] || row["Number"] || "").trim();
+          const capacity = parseInt(String(row["capacity"] || row["Capacity"] || "0"), 10);
+          const type = String(row["type"] || row["Type"] || "classroom").trim().toLowerCase() as RoomType;
+          const deptCode = String(row["departmentId"] || row["departmentShortCode"] || row["Department"] || "").trim();
+
+          if (!number || !deptCode) throw new Error("Missing number or department short code");
+          
+          const dept = await prisma.department.findUnique({ where: { shortCode: deptCode } });
+          if (!dept) throw new Error(`Department ${deptCode} not found`);
+
+          const existing = await prisma.room.findUnique({ where: { number_departmentId: { number, departmentId: dept.id } } });
+          if (existing) {
+            if (duplicateAction === "merge") {
+              await prisma.room.update({ where: { id: existing.id }, data: { capacity, type } });
+              updated++;
+            } else skipped++;
+          } else {
+            await prisma.room.create({ data: { number, capacity, type, departmentId: dept.id } });
+            created++;
+          }
+        } else if (entity === "courses") {
+          const code = String(row["code"] || row["Code"] || "").trim();
+          const name = String(row["name"] || row["Name"] || "").trim();
+          const credits = parseFloat(String(row["credits"] || row["Credits"] || "0"));
+          const type = String(row["type"] || row["Type"] || "lecture").trim().toLowerCase() as CourseType;
+          const branchCode = String(row["branchId"] || row["branch"] || row["Branch"] || "").trim();
+          const semester = String(row["semester"] || row["Semester"] || "").trim();
+          const deptCode = String(row["departmentId"] || row["departmentShortCode"] || row["Department"] || "").trim();
+
+          if (!code || !name) throw new Error("Missing course code or name");
+
+          let deptId: string | null = null;
+          if (deptCode) {
+            const dept = await prisma.department.findUnique({ where: { shortCode: deptCode } });
+            if (!dept) throw new Error(`Department ${deptCode} not found`);
+            deptId = dept.id;
+          }
+
+          let branchId: string = "";
+          if (branchCode) {
+             const branch = await prisma.branch.findFirst({ where: { name: branchCode } });
+             if (!branch) throw new Error(`Branch ${branchCode} not found`);
+             branchId = branch.id;
+          }
+
+          const existing = await prisma.course.findUnique({ where: { code_branchId_semester: { code, branchId, semester } } });
+          if (existing) {
+            if (duplicateAction === "merge") {
+              await prisma.course.update({ where: { id: existing.id }, data: { name, credits, type, courseType: type, departmentId: deptId || existing.departmentId } });
+              updated++;
+            } else skipped++;
+          } else {
+            await prisma.course.create({ data: { code, name, credits, type, courseType: type, semester, departmentId: deptId || "", branchId } });
+            created++;
+          }
+        } else if (entity === "faculty") {
+          const name = String(row["name"] || row["Name"] || "").trim();
+          const email = String(row["email"] || row["Email"] || "").trim();
+          const deptCode = String(row["departmentId"] || row["departmentShortCode"] || row["Department"] || "").trim();
+
+          if (!name || !email) throw new Error("Missing name or email");
+
+          let deptId: string | null = null;
+          if (deptCode) {
+            const dept = await prisma.department.findUnique({ where: { shortCode: deptCode } });
+            if (!dept) throw new Error(`Department ${deptCode} not found`);
+            deptId = dept.id;
+          }
+
+          const existing = await prisma.faculty.findUnique({ where: { email } });
+          if (existing) {
+            if (duplicateAction === "merge") {
+              await prisma.faculty.update({ where: { email }, data: { name, departmentId: deptId || existing.departmentId } });
+              updated++;
+            } else skipped++;
+          } else {
+            await prisma.faculty.create({ data: { name, email, departmentId: deptId || "" } });
+            created++;
+          }
+        } else if (entity === "users") {
+           const name = String(row["name"] || row["Name"] || "").trim();
+           const email = String(row["email"] || row["Email"] || "").trim();
+           const role = String(row["role"] || row["Role"] || "professor").trim().toLowerCase() as UserRole;
+           const deptCode = String(row["departmentId"] || row["departmentShortCode"] || row["Department"] || "").trim();
+           const rawPassword = String(row["password"] || row["Password"] || "changeMe123").trim();
+
+           if (!name || !email) throw new Error("Missing name or email");
+
+           let deptId: string | null = null;
+           if (deptCode && deptCode.toLowerCase() !== "all_depts" && deptCode !== "") {
+             const dept = await prisma.department.findUnique({ where: { shortCode: deptCode } });
+             if (!dept) throw new Error(`Department ${deptCode} not found`);
+             deptId = dept.id;
+           }
+
+           const existing = await prisma.user.findUnique({ where: { email } });
+           if (existing) {
+             if (duplicateAction === "merge") {
+               const updateData: any = { name, role, departmentId: deptId };
+               if (row["password"]) {
+                  const { createHash } = await import("node:crypto");
+                  updateData.password = createHash("sha256").update(rawPassword).digest("hex");
+               }
+               await prisma.user.update({ where: { email }, data: updateData });
+               updated++;
+             } else skipped++;
+           } else {
+             const { createHash } = await import("node:crypto");
+             const password = createHash("sha256").update(rawPassword).digest("hex");
+             await prisma.user.create({ data: { name, email, role, password, departmentId: deptId } });
+             created++;
+           }
+        }
+      } catch (e: any) {
+        errors.push(`Row ${i+1}: ${e.message}`);
+      }
+      
+      if (i % 10 === 0) {
+         await job.updateProgress({ processed: i + 1, total: rows.length });
+      }
+    }
+    await job.updateProgress({ processed: rows.length, total: rows.length });
+
+    return { created, updated, skipped, errors };
+  },
+  { connection: redis as any, concurrency: 5 }
+);
+
+importWorker.on("failed", (job, err) => {
+  console.error(`[import-worker] Job failed:`, job?.id, err);
 });

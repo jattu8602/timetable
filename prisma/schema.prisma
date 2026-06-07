@@ -83,6 +83,7 @@ model Course {
   id           String     @id @default(uuid())
   code         String
   name         String
+  shortName    String?
   credits      Float
   type         CourseType
   courseType   String

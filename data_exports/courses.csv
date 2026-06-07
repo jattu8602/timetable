@@ -1,0 +1,52 @@
+code,name,credits,type,branch,department,semester
+CS333,Compiler Design (CD),4,Core,CS,CSE,VI A
+CS335,Artificial Intelligence and Machine Learning (AIML),4,Core,CS,CSE,VI A
+IT349,Cryptography and Network Security (CNS),3,PE III,CS,CSE,VI A
+IT353,Blockchain Technology (BCT),3,PE III,CS,CSE,VI A
+MT204,Constitution of India (Col),NC,HSS,CS,CSE,VI A
+MT133,Communications Skills II (CS-II),1.5,HSS,CS,CSE,VI A
+CS336,Artificial Intelligence & Machine Learning Lab (AIML Lab),1.5,Core,CS,CSE,VI A
+CS334,Compiler Design Lab (CD Lab),1.5,Core,CS,CSE,VI A
+CS338,Embeded System Lab (ES Lab),1.5,Core,CS,CSE,VI A
+MC300,Summer Training,2,Proj.,CS,CSE,VI A
+AI303,UnSupervised Learning (USL),3,Core,AIML,CSE,VI
+AI305,Deep Learning (DL),3,Core,AIML,CSE,VI
+AI307,Modern AI (MAI),3,Core,AIML,CSE,VI
+AI317,Information Retrieval (IR),3,PE III,AIML,CSE,VI
+AI321,Data Mining,3,PE III,AIML,CSE,VI
+AI304,UnSupervised Learning Lab (USL Lab),1.5,Core,AIML,CSE,VI
+AI306,Deep Learning Lab (DL Lab),1.5,Core,AIML,CSE,VI
+CS24211,Data Base Management System,3,Core,CS,CSE,IV A
+CS24213,Design and Analysis of Algorithms,3,Core,CS,CSE,IV A
+CS24215,Operating Systems,3,Core,CS,CSE,IV A
+CS24219,Formal Language Automata Theory (FLAT),4,Core,CS,CSE,IV A
+MA24201,Numerical Methods (NM),2,Core,CS,CSE,IV A
+HS24211,Indian Knowledge System (IKS),0,Core,CS,CSE,IV A
+CS24212,Data Base Management System (DBMS) Lab,1.5,Core,CS,CSE,IV A
+CS24216,Shell and Kernel (SK) Lab,1.5,Core,CS,CSE,IV A
+CS24218,Advanced Programming (AP),2.5,Core,CS,CSE,IV A
+MA24202,Numerical Methods (NM) Lab,1,Core,CS,CSE,IV A
+MC24206/7/8/9/10,NCC / NSS / PT & Games / Creative Arts / Enterpreneurship,1,Activity (Any One),CS,CSE,IV A
+AI24211,Introduction to AI,4,Core,AIML,CSE,IV
+CA413,Data Communication and Computer Networks (DCCN),3,Core,MCA,CSE,II
+CA415,Software Engineering Principles (SEP),3,Core,MCA,CSE,II
+CA417,Theory of Computation (ToC),3,Core,MCA,CSE,II
+CA419,Analysis of Algorithms (AoA),3,Core,MCA,CSE,II
+CA441,Data Mining Techniques (DMT),3,Elective,MCA,CSE,II
+CA435,Modern AI (MAI),3,Elective,MCA,CSE,II
+MT114,Fundamentals of Management & Organization Behaviour (FMOB)),3,HSS,MCA,CSE,II
+CA414,Data Communication and Computer Networks Lab (DCCN Lab),1.5,Core,MCA,CSE,II
+CA416,Software Engineering Lab (SE Lab),1.5,Core,MCA,CSE,II
+CA422,IT Tools and Techniques Lab,1.5,Core,MCA,CSE,II
+HS24133,Communication Skills - II,1.5,HSS,MCA,CSE,II
+CS630,Modern Optimization Techniques (MOT),3,Elective,CS,CSE,II
+CS631,Deep Learning (DL),3,Elective,CS,CSE,II
+CS632,Data Anlysis and Interpretation (DAI),3,Elective,CS,CSE,II
+CS633,Natural Language Processing (NLP),3,Elective,CS,CSE,II
+CS636,Evolutionary Computing,3,Elective,CS,CSE,II
+CS689,Data Analytics Lab (DA Lab),2,Elective,CS,CSE,II
+CS639,Deep Learning Lab (DL Lab),2,Elective,CS,CSE,II
+AI601,Concept of Deep Learning (DL),3,Elective,AIML,CSE,II
+AI626,Concepts of Reinforcement Learning (RL),3,Elective,AIML,CSE,II
+AI602,Modern Artificial Intelligence (MAI),3,Elective,AIML,CSE,II
+AI622,Advanced Concepts of Deep Learning Lab (DL Lab),2,Elective,AIML,CSE,II

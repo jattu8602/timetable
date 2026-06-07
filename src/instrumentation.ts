@@ -7,8 +7,8 @@ export async function register() {
     }
 
     try {
-      const { timetableWorker } = await import("./lib/worker");
-      console.log("[Instrumentation] Background BullMQ Timetable Ingestion Worker initialized.");
+      const { timetableWorker, importWorker } = await import("./lib/worker");
+      console.log("[Instrumentation] Background BullMQ Timetable Ingestion Worker & Import Worker initialized.");
     } catch (error) {
       console.error("[Instrumentation] Failed to load BullMQ worker:", error);
     }

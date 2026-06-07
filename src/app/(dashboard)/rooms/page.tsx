@@ -150,8 +150,8 @@ export default function RoomsPage() {
         onRestore={handleRestore}
         deletedKey="deletedAt"
         addLabel="Add Room"
-        bulkImportEndpoint="/api/rooms"
-        bulkImportLabel="Import CSV"
+        bulkImportEndpoint="/api/import/rooms"
+        bulkImportLabel="Import"
         bulkImportExample="number,name,capacity,type,departmentId\n101,Room 101,60,classroom,<dept-id>"
       />
 

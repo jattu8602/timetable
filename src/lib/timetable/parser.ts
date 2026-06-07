@@ -18,6 +18,7 @@ export interface ParsedSlot {
 export interface ParsedCourse {
   code: string;
   name: string;
+  shortName?: string;
   type: string;
   credits: number;
   teacher: string;

@@ -36,12 +36,12 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ created, errors }, { status: 201 });
   }
-  const { code, name, credits, type, courseType, branchId, semester, departmentId, teacher } = body;
+  const { code, name, shortName, credits, type, courseType, branchId, semester, departmentId, teacher } = body;
   if (!code || !name || credits == null || !type || !branchId || !semester || !departmentId) {
     return NextResponse.json({ error: "missing required fields" }, { status: 400 });
   }
   const data = await prisma.course.create({
-    data: { code, name, credits, type, courseType: courseType ?? type, branchId, semester, departmentId },
+    data: { code, name, shortName, credits, type, courseType: courseType ?? type, branchId, semester, departmentId },
   });
   await assignFacultyToCourse(data.id, teacher || "TBA", departmentId);
   return NextResponse.json(data, { status: 201 });
@@ -49,13 +49,13 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   const body = await req.json();
-  const { id, code, name, credits, type, courseType, branchId, semester, departmentId, teacher } = body;
+  const { id, code, name, shortName, credits, type, courseType, branchId, semester, departmentId, teacher } = body;
   if (!id) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
   }
   const data = await prisma.course.update({
     where: { id },
-    data: { code, name, credits, type, courseType, branchId, semester, departmentId },
+    data: { code, name, shortName, credits, type, courseType, branchId, semester, departmentId },
   });
   if (teacher !== undefined) {
     await assignFacultyToCourse(data.id, teacher, departmentId);

@@ -286,8 +286,8 @@ export default function FacultyAndUsersPage() {
           onRestore={handleRestoreFaculty}
           deletedKey="deletedAt"
           addLabel="Add Faculty"
-          bulkImportEndpoint="/api/faculty"
-          bulkImportLabel="Import CSV"
+          bulkImportEndpoint="/api/import/faculty"
+          bulkImportLabel="Import"
           bulkImportExample="name,email,departmentId\nJohn HOD,john@bitmesra.ac.in,<dept-id>"
         />
       ) : (
@@ -302,8 +302,8 @@ export default function FacultyAndUsersPage() {
           onRestore={handleRestoreUser}
           deletedKey="deletedAt"
           addLabel="Add User"
-          bulkImportEndpoint="/api/users"
-          bulkImportLabel="Import CSV"
+          bulkImportEndpoint="/api/import/users"
+          bulkImportLabel="Import"
           bulkImportExample="name,email,role,departmentId\nSam Dean,sam@samayak.com,dean,<dept-id>"
           showDuplicateOptions={true}
         />

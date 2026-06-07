@@ -46,6 +46,7 @@ interface ScopedCourse {
   id: string;
   code: string;
   name: string;
+  shortName?: string;
   credits: number;
   type: string;
   courseType: string;
@@ -105,15 +106,16 @@ export default function TimetableDetailPage() {
   const [courseForm, setCourseForm] = useState({
     code: "",
     name: "",
+    shortName: "",
     credits: "3",
     type: "lecture",
     courseType: "Core",
     teacher: "",
   });
   const [isElectiveGroup, setIsElectiveGroup] = useState(false);
-  const [groupCourses, setGroupCourses] = useState<{ code: string; name: string; teacher: string }[]>([
-    { code: "", name: "", teacher: "" },
-    { code: "", name: "", teacher: "" },
+  const [groupCourses, setGroupCourses] = useState<{ code: string; name: string; shortName: string; teacher: string }[]>([
+    { code: "", name: "", shortName: "", teacher: "" },
+    { code: "", name: "", shortName: "", teacher: "" },
   ]);
 
   const [draggedSlotId, setDraggedSlotId] = useState<string | null>(null);
@@ -396,10 +398,10 @@ export default function TimetableDetailPage() {
     setEditingCourse(null);
     setIsElectiveGroup(false);
     setGroupCourses([
-      { code: "", name: "", teacher: "" },
-      { code: "", name: "", teacher: "" },
+      { code: "", name: "", shortName: "", teacher: "" },
+      { code: "", name: "", shortName: "", teacher: "" },
     ]);
-    setCourseForm({ code: "", name: "", credits: "3", type: "lecture", courseType: "Core", teacher: "" });
+    setCourseForm({ code: "", name: "", shortName: "", credits: "3", type: "lecture", courseType: "Core", teacher: "" });
     setCourseOpen(true);
   }
 
@@ -413,25 +415,28 @@ export default function TimetableDetailPage() {
       const names = c.name.split(" / ");
       const teachers = c.teacher.split(" / ");
       const maxLen = Math.max(codes.length, names.length, teachers.length);
+      const shortNames = (c.shortName || "").split(" / ");
       const list = [];
       for (let i = 0; i < maxLen; i++) {
         list.push({
           code: codes[i] || "",
           name: names[i] || "",
+          shortName: shortNames[i] || "",
           teacher: teachers[i] === "TBA" ? "" : (teachers[i] || ""),
         });
       }
       setGroupCourses(list);
     } else {
       setGroupCourses([
-        { code: "", name: "", teacher: "" },
-        { code: "", name: "", teacher: "" },
+        { code: "", name: "", shortName: "", teacher: "" },
+        { code: "", name: "", shortName: "", teacher: "" },
       ]);
     }
 
     setCourseForm({
       code: c.code,
       name: c.name,
+      shortName: c.shortName || "",
       credits: String(c.credits),
       type: c.type,
       courseType: c.courseType,
@@ -445,22 +450,25 @@ export default function TimetableDetailPage() {
 
     let codeVal = courseForm.code;
     let nameVal = courseForm.name;
+    let shortNameVal = courseForm.shortName;
     let teacherVal = courseForm.teacher || "TBA";
 
     if (isElectiveGroup) {
-      const activeGroup = groupCourses.filter(g => g.code.trim() && g.name.trim());
-      if (activeGroup.length === 0) {
+      const valid = groupCourses.filter(g => g.code.trim() && g.name.trim());
+      if (valid.length === 0) {
         toast("Please enter at least one elective course code and name", "error");
         return;
       }
-      codeVal = activeGroup.map(g => g.code.trim()).join(" / ");
-      nameVal = activeGroup.map(g => g.name.trim()).join(" / ");
-      teacherVal = activeGroup.map(g => g.teacher.trim() || "TBA").join(" / ");
+      codeVal = valid.map(g => g.code.trim()).join(" / ");
+      nameVal = valid.map(g => g.name.trim()).join(" / ");
+      shortNameVal = valid.map(g => g.shortName?.trim() || g.code.trim()).join(" / ");
+      teacherVal = valid.map(g => g.teacher.trim() || "TBA").join(" / ");
     }
 
     const payload = {
       code: codeVal,
       name: nameVal,
+      shortName: shortNameVal,
       credits: parseFloat(courseForm.credits) || 0,
       type: courseForm.type,
       courseType: courseForm.courseType,
@@ -768,6 +776,7 @@ export default function TimetableDetailPage() {
                     const codes = isGroup ? course.code.split(" / ") : [course.code];
                     const names = isGroup ? course.name.split(" / ") : [course.name];
                     const teachers = isGroup ? course.teacher.split(" / ") : [course.teacher];
+                    const shortNames = course.shortName ? (isGroup ? course.shortName.split(" / ") : [course.shortName]) : [];
 
                     return (
                       <tr key={course.id} className="border-b last:border-0 hover:bg-canvas/50">
@@ -788,8 +797,13 @@ export default function TimetableDetailPage() {
                         {/* Course Name */}
                         <td className="p-0 border-r align-middle">
                           {names.map((n, idx) => (
-                            <div key={idx} className="p-3 border-b last:border-b-0 font-semibold text-ink min-h-[48px] flex items-center">
-                              {n}
+                            <div key={idx} className="p-3 border-b last:border-b-0 font-semibold text-ink min-h-[48px] flex items-center gap-2">
+                              {shortNames[idx] && shortNames[idx] !== codes[idx] && (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-[#e5f0fa] text-[#256199] border border-[#256199]/20 uppercase shrink-0">
+                                  {shortNames[idx]}
+                                </span>
+                              )}
+                              <span>{n}</span>
                             </div>
                           ))}
                         </td>
@@ -1081,17 +1095,31 @@ export default function TimetableDetailPage() {
                           )}
                         </div>
                       </div>
-                      <div className="space-y-1">
-                        <Label>Course Name</Label>
-                        <Input
-                          placeholder="e.g. Cryptography and Network Security"
-                          value={gc.name}
-                          onChange={(e) => {
-                            const items = [...groupCourses];
-                            items[idx].name = e.target.value;
-                            setGroupCourses(items);
-                          }}
-                        />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label>Course Name</Label>
+                          <Input
+                            placeholder="e.g. Cryptography and Network Security"
+                            value={gc.name}
+                            onChange={(e) => {
+                              const items = [...groupCourses];
+                              items[idx].name = e.target.value;
+                              setGroupCourses(items);
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label>Short Name / Tag</Label>
+                          <Input
+                            placeholder="e.g. CNS"
+                            value={gc.shortName || ""}
+                            onChange={(e) => {
+                              const items = [...groupCourses];
+                              items[idx].shortName = e.target.value;
+                              setGroupCourses(items);
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1100,7 +1128,7 @@ export default function TimetableDetailPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setGroupCourses([...groupCourses, { code: "", name: "", teacher: "" }])}
+                  onClick={() => setGroupCourses([...groupCourses, { code: "", name: "", shortName: "", teacher: "" }])}
                   className="w-full border-dashed"
                 >
                   + Add Course Option
@@ -1133,14 +1161,26 @@ export default function TimetableDetailPage() {
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="course-name">Course Name</Label>
-                  <Input
-                    id="course-name"
-                    placeholder="e.g. Data Base Management System"
-                    value={courseForm.name}
-                    onChange={(e) => setCourseForm({ ...courseForm, name: e.target.value })}
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="course-name">Course Name</Label>
+                    <Input
+                      id="course-name"
+                      placeholder="e.g. Data Base Management System"
+                      value={courseForm.name}
+                      onChange={(e) => setCourseForm({ ...courseForm, name: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="course-shortName">Short Name (Tag)</Label>
+                    <Input
+                      id="course-shortName"
+                      placeholder="e.g. DBMS"
+                      value={courseForm.shortName || ""}
+                      onChange={(e) => setCourseForm({ ...courseForm, shortName: e.target.value })}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">

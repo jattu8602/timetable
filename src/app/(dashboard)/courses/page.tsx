@@ -172,8 +172,8 @@ export default function CoursesPage() {
         onRestore={handleRestore}
         deletedKey="deletedAt"
         addLabel="Add Course"
-        bulkImportEndpoint="/api/courses"
-        bulkImportLabel="Import CSV"
+        bulkImportEndpoint="/api/import/courses"
+        bulkImportLabel="Import"
         bulkImportExample="code,name,credits,type,branchId,semester,departmentId\nCS101,Intro to CS,4,lecture,<branch-id>,6,<dept-id>"
       />
 

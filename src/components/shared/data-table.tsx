@@ -112,7 +112,7 @@ export function DataTable<T>({
             <>
               <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
                 <Upload className="mr-1 h-4 w-4" />
-                {bulkImportLabel || "Import CSV"}
+                {bulkImportLabel || "Import"}
               </Button>
               <BulkImportDialog
                 open={importOpen}

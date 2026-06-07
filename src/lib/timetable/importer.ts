@@ -93,6 +93,7 @@ export async function importTimetable(parsed: ParsedTimetable) {
         data: {
           code: c.code,
           name: c.name,
+          shortName: c.shortName || null,
           credits: c.credits,
           type: c.type.toLowerCase().includes("lab") ? "lab" : "lecture",
           courseType: c.type,

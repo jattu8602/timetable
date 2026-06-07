@@ -104,8 +104,8 @@ export default function DepartmentsPage() {
         onRestore={handleRestore}
         deletedKey="deletedAt"
         addLabel="Add Department"
-        bulkImportEndpoint="/api/departments"
-        bulkImportLabel="Import CSV"
+        bulkImportEndpoint="/api/import/departments"
+        bulkImportLabel="Import"
         bulkImportExample="name,shortCode\nComputer Science,CSE"
       />
 
