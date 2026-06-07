@@ -31,7 +31,7 @@ export async function importTimetable(parsed: ParsedTimetable) {
 
   const dept = await prisma.department.upsert({
     where: { shortCode: metadata.department },
-    update: {},
+    update: { deletedAt: null },
     create: { name: metadata.department, shortCode: metadata.department },
   });
 
@@ -48,6 +48,9 @@ export async function importTimetable(parsed: ParsedTimetable) {
   });
 
   if (branch) {
+    if ((branch as any).deletedAt) {
+      branch = await prisma.branch.update({ where: { id: branch.id }, data: { deletedAt: null } });
+    }
     summary.branches.matched++;
   } else {
     branch = await prisma.branch.create({
@@ -84,6 +87,9 @@ export async function importTimetable(parsed: ParsedTimetable) {
     let course;
     if (existingCourse) {
       course = existingCourse;
+      if (course.deletedAt) {
+        course = await prisma.course.update({ where: { id: course.id }, data: { deletedAt: null } });
+      }
       summary.courses.matched++;
     } else {
       if (c.credits === 0) {
@@ -115,7 +121,7 @@ export async function importTimetable(parsed: ParsedTimetable) {
 
       const faculty = await prisma.faculty.upsert({
         where: { email },
-        update: { name: c.teacher, departmentId: dept.id },
+        update: { name: c.teacher, departmentId: dept.id, deletedAt: null },
         create: { name: c.teacher, email, departmentId: dept.id },
       });
 
@@ -154,6 +160,9 @@ export async function importTimetable(parsed: ParsedTimetable) {
         });
 
         if (existingRoom) {
+          if (existingRoom.deletedAt) {
+            await prisma.room.update({ where: { id: existingRoom.id }, data: { deletedAt: null } });
+          }
           summary.rooms.matched++;
         } else {
           // Flag default room creation warning
