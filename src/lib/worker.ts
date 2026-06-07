@@ -60,37 +60,34 @@ export const timetableWorker = new Worker<JobData>(
       console.log(`[worker] Importing structured timetable into DB for job ${jobId}...`);
       const { timetable, summary } = await importTimetable(parsed);
 
-      // Render first page of PDF to PNG and save in public/uploads/${timetable.id}.png
+      // Render first page of PDF to PNG and upload both to ImageKit
+      let pdfUrl: string | null = null;
+      let imageUrl: string | null = null;
       try {
         const { renderPdfToPng } = await import("./pdf-renderer");
-        const fs = await import("node:fs");
-        const path = await import("node:path");
+        const { uploadToImageKit } = await import("./imagekit");
 
         console.log(`[worker] Rendering PDF first page to PNG for timetable ${timetable.id}...`);
         const pngBuffer = await renderPdfToPng(buffer);
-        const uploadsDir = path.join(process.cwd(), "public", "uploads");
-        if (!fs.existsSync(uploadsDir)) {
-          fs.mkdirSync(uploadsDir, { recursive: true });
-        }
-        fs.writeFileSync(path.join(uploadsDir, `${timetable.id}.png`), pngBuffer);
-        fs.writeFileSync(path.join(uploadsDir, `${timetable.id}.pdf`), buffer);
-        console.log(`[worker] Saved visual PNG and original PDF to public/uploads/ for ${timetable.id}`);
-      } catch (renderErr) {
-        console.error(`[worker] Error rendering PDF visual snapshot:`, renderErr);
-      }
 
-      // Upload PDF asynchronously to ImageKit if credentials are configured
-      try {
-        const { uploadToImageKit } = await import("./imagekit");
-        uploadToImageKit(buffer, `${timetable.id}.pdf`).then((url) => {
-          if (url) {
-            console.log(`[worker] Timetable PDF uploaded to ImageKit: ${url}`);
-          }
-        }).catch((err) => {
-          console.error(`[worker] ImageKit upload promise rejected:`, err);
-        });
+        console.log(`[worker] Uploading PDF and PNG to ImageKit...`);
+        const [uploadedPdf, uploadedPng] = await Promise.all([
+          uploadToImageKit(buffer, `${timetable.id}.pdf`),
+          uploadToImageKit(pngBuffer, `${timetable.id}.png`),
+        ]);
+
+        pdfUrl = uploadedPdf;
+        imageUrl = uploadedPng;
+        
+        if (pdfUrl || imageUrl) {
+          console.log(`[worker] Updating database with ImageKit URLs...`);
+          await prisma.timetable.update({
+            where: { id: timetable.id },
+            data: { pdfUrl, imageUrl },
+          });
+        }
       } catch (uploadErr) {
-        console.error(`[worker] Error during ImageKit upload setup:`, uploadErr);
+        console.error(`[worker] Error during ImageKit upload:`, uploadErr);
       }
 
       // 3. Mark completed

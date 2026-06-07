@@ -33,17 +33,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Timetable not found" }, { status: 404 });
     }
 
-    const pngPath = path.join(process.cwd(), "public", "uploads", `${id}.png`);
-    if (!fs.existsSync(pngPath)) {
-      return NextResponse.json(
-        { error: "Visual PNG snapshot of this PDF was not found. Please upload a new PDF to generate a visual preview." },
-        { status: 404 }
-      );
+    // 1. Try to use cloud imageUrl, fallback to local path for legacy backwards compatibility
+    let base64 = "";
+    if (timetable.imageUrl) {
+      console.log(`[analyze-route] Fetching timetable image from ImageKit: ${timetable.imageUrl}`);
+      const imgRes = await fetch(timetable.imageUrl);
+      if (!imgRes.ok) {
+        return NextResponse.json({ error: "Failed to download image from cloud storage" }, { status: 500 });
+      }
+      const arrayBuffer = await imgRes.arrayBuffer();
+      base64 = Buffer.from(arrayBuffer).toString("base64");
+    } else {
+      console.log(`[analyze-route] No cloud URL found, falling back to local storage...`);
+      const pngPath = path.join(process.cwd(), "public", "uploads", `${id}.png`);
+      if (!fs.existsSync(pngPath)) {
+        return NextResponse.json(
+          { error: "Visual PNG snapshot of this PDF was not found in cloud or locally." },
+          { status: 404 }
+        );
+      }
+      const fileBuffer = fs.readFileSync(pngPath);
+      base64 = fileBuffer.toString("base64");
     }
-
-    // Read PNG file and convert to base64
-    const fileBuffer = fs.readFileSync(pngPath);
-    const base64 = fileBuffer.toString("base64");
 
     console.log(`[analyze-route] Sending timetable ${id} PNG to Mistral Vision model...`);
     const analysis = await analyzeTimetableImage(base64);

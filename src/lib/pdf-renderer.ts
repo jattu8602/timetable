@@ -27,7 +27,8 @@ export async function renderPdfToPng(pdfBuffer: Buffer): Promise<Buffer> {
     
     try {
       // Mac-native CLI tool that converts PDF to PNG flawlessly without Node modules!
-      execSync(`sips -s format png "${tempPdfPath}" --out "${tempPngPath}"`, { stdio: "ignore" });
+      // Using 300 DPI for ultra-crisp AI layout analysis
+      execSync(`sips -s format png -s dpiHeight 300.0 -s dpiWidth 300.0 "${tempPdfPath}" --out "${tempPngPath}"`, { stdio: "ignore" });
       const pngBuffer = fs.readFileSync(tempPngPath);
       
       // Cleanup temp files
@@ -50,7 +51,7 @@ export async function renderPdfToPng(pdfBuffer: Buffer): Promise<Buffer> {
   }).promise;
 
   const page = await doc.getPage(1);
-  const scale = 2.0; // High resolution rendering
+  const scale = 4.0; // Extreme high resolution rendering for Mistral AI
   const viewport = page.getViewport({ scale });
 
   const canvas = createCanvas(viewport.width, viewport.height);

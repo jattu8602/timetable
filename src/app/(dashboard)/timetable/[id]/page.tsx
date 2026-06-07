@@ -58,6 +58,8 @@ interface TimetableDetail {
   institution: string;
   academicTerm: string;
   program: string;
+  imageUrl?: string | null;
+  pdfUrl?: string | null;
   semesterName: string;
   wefDate: string;
   departmentId: string;
@@ -892,7 +894,7 @@ export default function TimetableDetailPage() {
             </div>
             <div className="rounded-xl overflow-hidden border max-h-[600px] overflow-y-auto bg-canvas">
               <img
-                src={`/uploads/${params.id}.png`}
+                src={data?.imageUrl || `/uploads/${params.id}.png`}
                 alt="Visual snapshot representation of timetable"
                 className="w-full h-auto object-contain"
                 onError={(e) => {

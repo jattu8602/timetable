@@ -140,6 +140,9 @@ model Timetable {
   department Department @relation(fields: [departmentId], references: [id])
   branch     Branch     @relation(fields: [branchId], references: [id])
   slots      TimeSlot[]
+  
+  pdfUrl       String?
+  imageUrl     String?
 }
 
 model TimeSlot {
