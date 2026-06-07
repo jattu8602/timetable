@@ -61,7 +61,6 @@ export const timetableWorker = new Worker<JobData>(
       const { timetable, summary } = await importTimetable(parsed);
 
       // Render first page of PDF to PNG and save in public/uploads/${timetable.id}.png
-      /*
       try {
         const { renderPdfToPng } = await import("./pdf-renderer");
         const fs = await import("node:fs");
@@ -74,12 +73,11 @@ export const timetableWorker = new Worker<JobData>(
           fs.mkdirSync(uploadsDir, { recursive: true });
         }
         fs.writeFileSync(path.join(uploadsDir, `${timetable.id}.png`), pngBuffer);
-        console.log(`[worker] Saved visual PNG of timetable to public/uploads/${timetable.id}.png`);
+        fs.writeFileSync(path.join(uploadsDir, `${timetable.id}.pdf`), buffer);
+        console.log(`[worker] Saved visual PNG and original PDF to public/uploads/ for ${timetable.id}`);
       } catch (renderErr) {
         console.error(`[worker] Error rendering PDF visual snapshot:`, renderErr);
       }
-      */
-      console.log(`[worker] Skipped rendering PDF to PNG for stability.`);
 
       // Upload PDF asynchronously to ImageKit if credentials are configured
       try {

@@ -47,6 +47,7 @@ interface DataTableProps<T> {
   bulkImportLabel?: string;
   bulkImportExample?: string;
   showDuplicateOptions?: boolean;
+  entityType?: "department" | "room" | "course" | "faculty" | "user";
 }
 
 export function DataTable<T>({
@@ -66,6 +67,7 @@ export function DataTable<T>({
   bulkImportLabel,
   bulkImportExample,
   showDuplicateOptions = false,
+  entityType,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -73,6 +75,9 @@ export function DataTable<T>({
   const [importOpen, setImportOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [depWarningOpen, setDepWarningOpen] = useState(false);
+  const [depWarningMsg, setDepWarningMsg] = useState("");
+  const [pendingAction, setPendingAction] = useState<() => void>();
 
   const filtered = searchable
     ? data.filter((item) => {
@@ -105,6 +110,34 @@ export function DataTable<T>({
     }
   }
 
+  async function handleBulkDeleteClick() {
+    if (!onDeleteBulk) return;
+    
+    // Check dependencies for the first selected item just as a simple heuristic, 
+    // or we could check all, but for simplicity let's just show standard confirm.
+    // Actually, for bulk we'll just show the standard confirm since checking multiple might be slow.
+    setBulkConfirmOpen(true);
+  }
+
+  async function handleSingleDeleteClick(item: T) {
+    if (entityType && (entityType === "department" || entityType === "room")) {
+      const id = keyExtractor(item);
+      try {
+        const res = await fetch(`/api/dependencies?type=${entityType}&id=${id}`);
+        const data = await res.json();
+        if (data.hasDependencies) {
+          setDepWarningMsg(data.message);
+          setPendingAction(() => () => onDelete?.(item));
+          setDepWarningOpen(true);
+          return;
+        }
+      } catch (err) {
+        console.error("Dependency check failed", err);
+      }
+    }
+    onDelete?.(item);
+  }
+
   function handleBulkDelete() {
     if (!onDeleteBulk) return;
     const itemsToDelete = data.filter((item) => selected.has(keyExtractor(item)));
@@ -129,7 +162,7 @@ export function DataTable<T>({
         )}
         <div className="flex flex-wrap items-center gap-2 max-sm:w-full max-sm:justify-end">
           {onDeleteBulk && selected.size > 0 && (
-            <Button variant="destructive" size="sm" onClick={() => setBulkConfirmOpen(true)}>
+            <Button variant="destructive" size="sm" onClick={handleBulkDeleteClick}>
               <Trash2 className="mr-1 h-4 w-4" />
               Delete Selected ({selected.size})
             </Button>
@@ -256,7 +289,7 @@ export function DataTable<T>({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => onDelete(item)}
+                                onClick={() => handleSingleDeleteClick(item)}
                               >
                                 <Trash2 className="h-4 w-4 text-error" />
                               </Button>
@@ -286,6 +319,34 @@ export function DataTable<T>({
             </Button>
             <Button variant="destructive" onClick={handleBulkDelete}>
               Confirm Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dependency Warning Dialog */}
+      <Dialog open={depWarningOpen} onOpenChange={setDepWarningOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-error flex items-center gap-2">
+              Dependency Warning
+            </DialogTitle>
+            <DialogDescription className="text-ink text-base mt-4 font-medium">
+              {depWarningMsg}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDepWarningOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => {
+                setDepWarningOpen(false);
+                pendingAction?.();
+              }}
+            >
+              Proceed Anyway
             </Button>
           </DialogFooter>
         </DialogContent>

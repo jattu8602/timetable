@@ -40,11 +40,18 @@ export async function POST(req: NextRequest) {
   if (!code || !name || credits == null || !type || !branchId || !semester || !departmentId) {
     return NextResponse.json({ error: "missing required fields" }, { status: 400 });
   }
-  const data = await prisma.course.create({
-    data: { code, name, shortName, credits, type, courseType: courseType ?? type, branchId, semester, departmentId },
-  });
-  await assignFacultyToCourse(data.id, teacher || "TBA", departmentId);
-  return NextResponse.json(data, { status: 201 });
+  try {
+    const data = await prisma.course.create({
+      data: { code, name, shortName, credits, type, courseType: courseType ?? type, branchId, semester, departmentId },
+    });
+    await assignFacultyToCourse(data.id, teacher || "TBA", departmentId);
+    return NextResponse.json(data, { status: 201 });
+  } catch (err: any) {
+    if (err.code === "P2002") {
+      return NextResponse.json({ error: `A course with code '${code}' already exists for this branch and semester.` }, { status: 409 });
+    }
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }
 
 export async function PUT(req: NextRequest) {
@@ -53,14 +60,21 @@ export async function PUT(req: NextRequest) {
   if (!id) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
   }
-  const data = await prisma.course.update({
-    where: { id },
-    data: { code, name, shortName, credits, type, courseType, branchId, semester, departmentId },
-  });
-  if (teacher !== undefined) {
-    await assignFacultyToCourse(data.id, teacher, departmentId);
+  try {
+    const data = await prisma.course.update({
+      where: { id },
+      data: { code, name, shortName, credits, type, courseType, branchId, semester, departmentId },
+    });
+    if (teacher !== undefined) {
+      await assignFacultyToCourse(data.id, teacher, departmentId);
+    }
+    return NextResponse.json(data);
+  } catch (err: any) {
+    if (err.code === "P2002") {
+      return NextResponse.json({ error: `A course with code '${code}' already exists for this branch and semester.` }, { status: 409 });
+    }
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
-  return NextResponse.json(data);
 }
 
 export async function DELETE(req: NextRequest) {

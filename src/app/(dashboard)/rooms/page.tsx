@@ -40,7 +40,7 @@ interface Department {
 const columns: Column<Room>[] = [
   { key: "number", label: "Number", sortable: true },
   { key: "name", label: "Name", render: (r) => r.name ?? "—" },
-  { key: "capacity", label: "Capacity", sortable: true },
+  { key: "capacity", label: "Capacity", sortable: true, render: (r) => r.capacity === 0 ? <span className="inline-flex items-center gap-1 rounded-md bg-error/10 px-2 py-0.5 text-[11px] font-semibold text-error ring-1 ring-inset ring-error/20">⚠️ Missing Capacity</span> : r.capacity },
   {
     key: "type",
     label: "Type",
@@ -160,6 +160,7 @@ export default function RoomsPage() {
         bulkImportEndpoint="/api/import/rooms"
         bulkImportLabel="Import"
         bulkImportExample="number,name,capacity,type,departmentId\n101,Room 101,60,classroom,<dept-id>"
+        entityType="room"
       />
 
       <Dialog open={open} onOpenChange={setOpen}>

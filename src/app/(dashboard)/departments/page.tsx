@@ -114,6 +114,7 @@ export default function DepartmentsPage() {
         bulkImportEndpoint="/api/import/departments"
         bulkImportLabel="Import"
         bulkImportExample="name,shortCode\nComputer Science,CSE"
+        entityType="department"
       />
 
       <Dialog open={open} onOpenChange={setOpen}>

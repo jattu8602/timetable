@@ -51,7 +51,7 @@ interface Department {
 const columns: Column<Course>[] = [
   { key: "code", label: "Code", sortable: true },
   { key: "name", label: "Name", sortable: true },
-  { key: "credits", label: "Credits", sortable: true },
+  { key: "credits", label: "Credits", sortable: true, render: (c) => c.credits === 0 ? <span className="inline-flex items-center gap-1 rounded-md bg-warning/10 px-2 py-0.5 text-[11px] font-semibold text-warning ring-1 ring-inset ring-warning/20">⚠️ Non-Credit</span> : c.credits },
   { key: "type", label: "Type", sortable: true, render: (c) => <span className="capitalize">{c.type}</span> },
   { key: "semester", label: "Semester", sortable: true },
   { key: "branch", label: "Branch", render: (c) => c.branch ? `${c.branch.name} (${c.branch.program})` : "—" },

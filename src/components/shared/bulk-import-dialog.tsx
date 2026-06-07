@@ -35,6 +35,7 @@ export function BulkImportDialog({
   const [duplicateAction, setDuplicateAction] = useState<"merge" | "skip">("merge");
   const [result, setResult] = useState<{ created: number; updated?: number; skipped?: number; errors: string[] } | null>(null);
   const [progress, setProgress] = useState<{ processed: number, total: number }>({ processed: 0, total: 0 });
+  const [previewData, setPreviewData] = useState<{ headers: string[], rows: any[], totalCount: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -117,22 +118,48 @@ export function BulkImportDialog({
     setResult(null);
     setJobId(null);
     setImporting(false);
+    setPreviewData(null);
     setProgress({ processed: 0, total: 0 });
     onOpenChange(false);
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
+  const generatePreview = async (f: File) => {
+    try {
+      const buffer = await f.arrayBuffer();
+      const xlsx = await import("xlsx");
+      const workbook = xlsx.read(buffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = xlsx.utils.sheet_to_json(sheet) as any[];
+      if (rows.length > 0) {
+        setPreviewData({
+          headers: Object.keys(rows[0]),
+          rows: rows.slice(0, 3), // Show first 3 rows
+          totalCount: rows.length
+        });
+      } else {
+        setPreviewData({ headers: [], rows: [], totalCount: 0 });
+      }
+    } catch (e) {
+      console.error("Preview generation failed", e);
     }
   };
 
-  const onDrop = (e: React.DragEvent) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      await generatePreview(selectedFile);
+    }
+  };
+
+  const onDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const droppedFile = e.dataTransfer.files[0];
       if (droppedFile.name.endsWith('.csv') || droppedFile.name.endsWith('.xlsx')) {
         setFile(droppedFile);
+        await generatePreview(droppedFile);
       }
     }
   };
@@ -168,13 +195,45 @@ export function BulkImportDialog({
                 />
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-lines bg-surface p-6">
-                <File className="mb-2 h-10 w-10 text-brand-blue" />
-                <p className="text-sm font-medium text-ink">{file.name}</p>
-                <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
-                <Button variant="ghost" size="sm" className="mt-4" onClick={() => setFile(null)}>
-                  Remove file
-                </Button>
+              <div className="flex flex-col rounded-xl border border-lines bg-surface overflow-hidden">
+                <div className="flex items-center p-4 border-b border-lines bg-canvas-2/50">
+                  <File className="h-8 w-8 text-brand-blue mr-3" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-ink truncate">{file.name}</p>
+                    <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB • {previewData?.totalCount ?? 0} rows found</p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => { setFile(null); setPreviewData(null); }}>
+                    Remove
+                  </Button>
+                </div>
+                
+                {previewData && previewData.rows.length > 0 && (
+                  <div className="p-4 bg-surface">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Data Preview</p>
+                    <div className="overflow-x-auto rounded border border-lines">
+                      <table className="w-full text-left text-[11px]">
+                        <thead className="bg-canvas-2/50 text-muted-foreground border-b border-lines">
+                          <tr>
+                            {previewData.headers.slice(0, 5).map((h) => (
+                              <th key={h} className="p-2 font-semibold truncate max-w-[100px]">{h}</th>
+                            ))}
+                            {previewData.headers.length > 5 && <th className="p-2 font-semibold">...</th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {previewData.rows.map((row, i) => (
+                            <tr key={i} className="border-b border-lines last:border-0 hover:bg-canvas-2/30">
+                              {previewData.headers.slice(0, 5).map((h) => (
+                                <td key={h} className="p-2 truncate max-w-[100px] text-ink">{String(row[h] || "")}</td>
+                              ))}
+                              {previewData.headers.length > 5 && <td className="p-2 text-muted-foreground">...</td>}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

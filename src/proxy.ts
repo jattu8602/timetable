@@ -43,6 +43,9 @@ export default auth((req) => {
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-correlation-id", correlationId);
 
+  // End-to-end request tracing log
+  console.log(`[REQ: ${correlationId}] ${req.method} ${pathname}`);
+
   return NextResponse.next({
     request: { headers: requestHeaders },
   });
