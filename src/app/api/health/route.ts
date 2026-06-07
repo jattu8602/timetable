@@ -13,7 +13,7 @@ export async function GET() {
   try {
     const redisUrl = process.env.REDIS_URL ?? "";
 
-    if (redisUrl.startsWith("redis://")) {
+    if (redisUrl.startsWith("redis://") || redisUrl.startsWith("rediss://")) {
       const Redis = (await import("ioredis")).default;
       const redis = new Redis(redisUrl, {
         lazyConnect: true,
