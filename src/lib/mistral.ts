@@ -51,11 +51,17 @@ interface MistralOcrResponse {
   pages: { index: number; markdown: string }[];
 }
 
-export async function ocrPdf(buffer: Buffer): Promise<string> {
+export async function ocrPdf(buffer: Buffer, fileName: string = "document.pdf"): Promise<string> {
   const base64 = buffer.toString("base64");
 
+  let mimeType = "application/pdf";
+  const lowerName = fileName.toLowerCase();
+  if (lowerName.endsWith(".png")) mimeType = "image/png";
+  else if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")) mimeType = "image/jpeg";
+  else if (lowerName.endsWith(".webp")) mimeType = "image/webp";
+
   const key = getKey();
-  console.log("[mistral] sending PDF to Mistral OCR...");
+  console.log(`[mistral] sending ${mimeType} to Mistral OCR...`);
   const ocrRes = await fetch(`${BASE}/ocr`, {
     method: "POST",
     headers: {
@@ -66,7 +72,7 @@ export async function ocrPdf(buffer: Buffer): Promise<string> {
       model: "mistral-ocr-latest",
       document: {
         type: "document_url",
-        document_url: `data:application/pdf;base64,${base64}`,
+        document_url: `data:${mimeType};base64,${base64}`,
       },
     }),
   });

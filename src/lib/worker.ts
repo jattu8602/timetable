@@ -42,7 +42,7 @@ export const timetableWorker = new Worker<JobData>(
       }
 
       console.log(`[worker] Running OCR for job ${jobId}...`);
-      const text = await ocrPdf(buffer);
+      const text = await ocrPdf(buffer, jobData.fileName);
 
       // Update text in job state
       jobData.text = text;
@@ -58,7 +58,7 @@ export const timetableWorker = new Worker<JobData>(
       }
 
       console.log(`[worker] Importing structured timetable into DB for job ${jobId}...`);
-      const { timetable, summary } = await importTimetable(parsed);
+      const { timetable, summary } = await importTimetable(parsed, jobData.fileName);
 
       // Render first page of PDF to PNG and upload both to ImageKit
       let pdfUrl: string | null = null;
@@ -67,16 +67,25 @@ export const timetableWorker = new Worker<JobData>(
         const { renderPdfToPng } = await import("./pdf-renderer");
         const { uploadToImageKit } = await import("./imagekit");
 
-        console.log(`[worker] Rendering PDF first page to PNG for timetable ${timetable.id}...`);
-        const pngBuffer = await renderPdfToPng(buffer);
+        console.log(`[worker] Generating PNG for timetable ${timetable.id}...`);
+        
+        let pngBuffer: Buffer;
+        const isImage = jobData.fileName.match(/\.(png|jpe?g|webp)$/i);
+        if (isImage) {
+          pngBuffer = buffer; // already an image!
+        } else {
+          pngBuffer = await renderPdfToPng(buffer);
+        }
 
-        console.log(`[worker] Uploading PDF and PNG to ImageKit...`);
-        const [uploadedPdf, uploadedPng] = await Promise.all([
-          uploadToImageKit(buffer, `${timetable.id}.pdf`),
-          uploadToImageKit(pngBuffer, `${timetable.id}.png`),
-        ]);
+        console.log(`[worker] Uploading to ImageKit...`);
+        const uploads = [uploadToImageKit(pngBuffer, `${timetable.id}.png`)];
+        if (!isImage) {
+          uploads.push(uploadToImageKit(buffer, `${timetable.id}.pdf`));
+        }
+        
+        const [uploadedPng, uploadedPdf] = await Promise.all(uploads);
 
-        pdfUrl = uploadedPdf;
+        pdfUrl = uploadedPdf || null;
         imageUrl = uploadedPng;
         
         if (pdfUrl || imageUrl) {
@@ -197,20 +206,30 @@ export const importWorker = new Worker(
         } else if (entity === "courses") {
           const code = String(row["code"] || row["Code"] || "").trim();
           const name = String(row["name"] || row["Name"] || "").trim();
-          const credits = parseFloat(String(row["credits"] || row["Credits"] || "0"));
-          const type = String(row["type"] || row["Type"] || "lecture").trim().toLowerCase() as CourseType;
+          const rawCredits = String(row["credits"] || row["Credits"] || "0").trim();
+          let credits = parseFloat(rawCredits);
+          if (isNaN(credits)) credits = 0; // Fix for "NC" non-credit courses
+          
+          const rawType = String(row["type"] || row["Type"] || "lecture").trim().toLowerCase();
+          const courseTypeStr = String(row["type"] || row["Type"] || "Core").trim();
+          
+          let typeEnum: CourseType = "lecture";
+          if (rawType.includes("lab") || rawType.includes("practical")) typeEnum = "lab";
+          else if (rawType.includes("elective") || rawType === "pe" || rawType === "oe") typeEnum = "elective";
+          else if (rawType.includes("tutorial")) typeEnum = "tutorial";
+          else if (rawType.includes("project") || rawType.includes("proj")) typeEnum = "project";
+          else if (rawType.includes("activity") || rawType.includes("ncc") || rawType.includes("nss")) typeEnum = "activity";
+          
           const branchCode = String(row["branchId"] || row["branch"] || row["Branch"] || "").trim();
           const semester = String(row["semester"] || row["Semester"] || "").trim();
-          const deptCode = String(row["departmentId"] || row["departmentShortCode"] || row["Department"] || "").trim();
+          const deptCode = String(row["departmentId"] || row["departmentShortCode"] || row["Department"] || row["department"] || "").trim();
 
           if (!code || !name) throw new Error("Missing course code or name");
+          if (!deptCode) throw new Error("Missing department code");
 
-          let deptId: string | null = null;
-          if (deptCode) {
-            const dept = await prisma.department.findUnique({ where: { shortCode: deptCode } });
-            if (!dept) throw new Error(`Department ${deptCode} not found`);
-            deptId = dept.id;
-          }
+          const dept = await prisma.department.findUnique({ where: { shortCode: deptCode } });
+          if (!dept) throw new Error(`Department ${deptCode} not found in database`);
+          const deptId = dept.id;
 
           let branchId: string = "";
           if (branchCode) {
@@ -222,11 +241,11 @@ export const importWorker = new Worker(
           const existing = await prisma.course.findUnique({ where: { code_branchId_semester: { code, branchId, semester } } });
           if (existing) {
             if (duplicateAction === "merge") {
-              await prisma.course.update({ where: { id: existing.id }, data: { name, credits, type, courseType: type, departmentId: deptId || existing.departmentId } });
+              await prisma.course.update({ where: { id: existing.id }, data: { name, credits, type: typeEnum, courseType: courseTypeStr, departmentId: deptId || existing.departmentId } });
               updated++;
             } else skipped++;
           } else {
-            await prisma.course.create({ data: { code, name, credits, type, courseType: type, semester, departmentId: deptId || "", branchId } });
+            await prisma.course.create({ data: { code, name, credits, type: typeEnum, courseType: courseTypeStr, semester, departmentId: deptId || "", branchId } });
             created++;
           }
         } else if (entity === "faculty") {

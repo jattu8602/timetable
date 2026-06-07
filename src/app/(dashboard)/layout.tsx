@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 
@@ -11,6 +11,19 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("sidebarCollapsed");
+    if (stored === "true") {
+      setDesktopCollapsed(true);
+    }
+  }, []);
+
+  const toggleCollapse = () => {
+    const newState = !desktopCollapsed;
+    setDesktopCollapsed(newState);
+    localStorage.setItem("sidebarCollapsed", String(newState));
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-canvas p-3 max-sm:p-0">
@@ -40,7 +53,7 @@ export default function DashboardLayout({
       <div className="flex flex-1 flex-col overflow-hidden pl-3 max-lg:pl-0 max-sm:p-3">
         <Header
           onMenuClick={() => setSidebarOpen(true)}
-          onToggleCollapse={() => setDesktopCollapsed(!desktopCollapsed)}
+          onToggleCollapse={toggleCollapse}
           collapsed={desktopCollapsed}
         />
         <main className="flex-1 overflow-y-auto pt-3">

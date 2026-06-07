@@ -11,7 +11,7 @@ export interface ImportSummary {
   warnings: string[];
 }
 
-export async function importTimetable(parsed: ParsedTimetable) {
+export async function importTimetable(parsed: ParsedTimetable, originalFileName?: string) {
   const { metadata, courses, slots } = parsed;
 
   const summary: ImportSummary = {
@@ -71,6 +71,7 @@ export async function importTimetable(parsed: ParsedTimetable) {
       branchId: branch.id,
       semesterName: metadata.semester,
       wefDate,
+      originalFileName,
     },
   });
 

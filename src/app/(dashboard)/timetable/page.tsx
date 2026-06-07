@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { useToast } from "@/lib/toast";
-import { Upload, Trash2, ExternalLink, FileText, Loader2, Plus } from "lucide-react";
+import { Upload, Trash2, ExternalLink, FileText, Loader2, Plus, FileImage } from "lucide-react";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 interface Timetable {
   id: string;
@@ -17,6 +18,9 @@ interface Timetable {
   department: { name: string; shortCode: string } | null;
   branch: { name: string; program: string } | null;
   _count: { slots: number };
+  pdfUrl?: string | null;
+  imageUrl?: string | null;
+  originalFileName?: string | null;
 }
 
 export default function TimetableListPage() {
@@ -109,7 +113,35 @@ export default function TimetableListPage() {
                   </p>
                 </div>
               </div>
+              
+              {tt.originalFileName && (
+                <p className="mt-2 text-[10px] text-muted-foreground opacity-60 truncate" title={tt.originalFileName}>
+                  {tt.originalFileName}
+                </p>
+              )}
+
               <div className="mt-4 flex gap-2">
+                {(tt.pdfUrl || tt.imageUrl) && (
+                  <Dialog>
+                    <DialogTrigger
+                      render={
+                        <Button variant="ghost" size="sm" className="text-brand-blue bg-brand-blue/10 hover:bg-brand-blue/20">
+                          <FileImage className="mr-1 h-3 w-3" />
+                          Preview
+                        </Button>
+                      }
+                    />
+                    <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden p-2">
+                      <div className="w-full h-full min-h-[70vh] rounded-[16px] overflow-hidden bg-canvas border border-lines">
+                        {tt.pdfUrl ? (
+                          <iframe src={tt.pdfUrl} className="w-full h-full min-h-[70vh] border-0" />
+                        ) : (
+                          <img src={tt.imageUrl!} className="w-full h-full object-contain" alt="Timetable preview" />
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
                 <Button size="sm" onClick={() => router.push(`/timetable/${tt.id}`)}>
                   <ExternalLink className="mr-1 h-3 w-3" />
                   Edit

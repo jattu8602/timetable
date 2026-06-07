@@ -109,20 +109,20 @@ export default function UploadPage() {
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith(".pdf"));
+    const files = Array.from(e.dataTransfer.files).filter(f => f.name.match(/\.(pdf|png|jpe?g|webp)$/i));
     if (files.length > 0) {
       files.forEach(f => handleUpload(f));
     } else {
-      setError("Please upload .pdf files only");
+      setError("Please upload .pdf, .png, or .jpg files only");
     }
   }, []);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 pb-20">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Upload Timetable PDF</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Upload Timetable</h1>
         <p className="text-sm text-muted-foreground">
-          Upload multiple university timetable PDFs side by side. They will process simultaneously in the background.
+          Upload multiple university timetable PDFs or images side by side. They will process simultaneously in the background.
         </p>
       </div>
 
@@ -136,7 +136,7 @@ export default function UploadPage() {
           <Upload className="size-5 text-brand-blue" />
         </div>
         <p className="text-lg font-medium text-ink">
-          Click or drop PDF files here
+          Click or drop PDF / Image files here
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
           You can select multiple files at once
@@ -144,13 +144,13 @@ export default function UploadPage() {
         <input
           ref={inputRef}
           type="file"
-          accept=".pdf"
+          accept=".pdf,image/png,image/jpeg,image/webp"
           multiple
           className="hidden"
           onChange={(e) => {
             const files = Array.from(e.target.files || []);
             files.forEach(f => {
-              if (f.name.endsWith(".pdf")) handleUpload(f);
+              if (f.name.match(/\.(pdf|png|jpe?g|webp)$/i)) handleUpload(f);
             });
             e.target.value = "";
           }}

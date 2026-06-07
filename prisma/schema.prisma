@@ -141,8 +141,9 @@ model Timetable {
   branch     Branch     @relation(fields: [branchId], references: [id])
   slots      TimeSlot[]
   
-  pdfUrl       String?
-  imageUrl     String?
+  pdfUrl           String?
+  imageUrl         String?
+  originalFileName String?
 }
 
 model TimeSlot {
