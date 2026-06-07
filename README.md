@@ -51,8 +51,6 @@ DATABASE_URL="postgresql://samayak:samayak_secret@postgres:5432/samayak?sslmode=
 REDIS_URL="redis://redis:6379"
 
 # External API Keys (Required for PDF Ingestion)
-OCR_SPACE_API_KEY="your-ocr-space-key"
-OPENAI_API_KEY="your-openai-key"
 MISTRAL_API_KEY="your-mistral-key"
 
 # Auth
@@ -236,8 +234,7 @@ Open [http://localhost:3000](http://localhost:3000) and login with `admin@samaya
 | PostgreSQL (NeonDB) over MongoDB | Spec prescribes PostgreSQL with foreign keys; NeonDB is serverless Postgres |
 | JWT session strategy | Required for Edge Runtime middleware to verify auth without database queries |
 | Dynamic `import("crypto")` | Credentials provider uses SHA-256; avoids Edge Runtime bundling errors |
-| OCR.space + OpenAI instead of pure pdf-parse | Scanned PDFs need OCR; OpenAI gpt-4o-mini structures raw OCR text into clean timetable data |
-| pdfjs-dist legacy build | Legacy build avoids DOMMatrix dependency missing in Node.js; handles page rendering for OCR |
+| Mistral (Pixtral) Vision Model | Replaced legacy OCR pipelines for significantly more accurate PDF-to-grid spatial understanding |
 | Upstash Redis (REST) over ioredis | Works in serverless/Edge; no TCP connection needed |
 | Proxy (middleware) | Next.js 16 renamed middleware → proxy; auth guard + correlation IDs |
 | Format-aware PDF parser | Parses SQL INSERT statements + ASCII grid; works for any BIT Mesra department |
@@ -249,11 +246,7 @@ Open [http://localhost:3000](http://localhost:3000) and login with `admin@samaya
 
 ```
 PDF Upload
-  → pdf-parse (text extraction — free, instant)
-  → if no timetable text found:
-    → pdfjs-dist renders each page as PNG
-    → OCR.space API extracts text per page
-    → OpenAI gpt-4o-mini structures raw OCR into ParsedTimetable JSON
+  → Mistral/Pixtral Vision Model (Direct extraction from visual layout)
   → splitTimetable creates courses, slots, rooms, faculty in DB
   → response
 ```
@@ -294,8 +287,8 @@ npx tsx prisma/seed.ts
 - Next.js 16 · TypeScript · Tailwind CSS v4 · shadcn/ui
 - Prisma v6 · PostgreSQL (NeonDB / local Docker) · Upstash Redis / local Redis (BullMQ support)
 - NextAuth.js v5 · Recharts
-- OCR.space · OpenAI gpt-4o-mini · Mistral OCR
-- pdfjs-dist · @napi-rs/canvas
+- Mistral AI (Pixtral 12B Vision Model)
+- @napi-rs/canvas
 - Figtree · Lucide Icons
 - Docker · Docker Compose
 
