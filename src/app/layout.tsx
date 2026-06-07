@@ -13,6 +13,16 @@ const figtreeSans = Figtree({
 export const metadata: Metadata = {
   title: "Samayak · Admin Panel",
   description: "Academic Operations Platform — Admin Panel",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Samayak Admin",
+  },
+};
+
+export const viewport = {
+  themeColor: "#256199",
 };
 
 export default function RootLayout({
