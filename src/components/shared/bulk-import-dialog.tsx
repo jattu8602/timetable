@@ -27,13 +27,22 @@ interface BulkImportDialogProps {
   endpoint: string;
   entityLabel: string;
   exampleCSV: string;
+  showDuplicateOptions?: boolean;
 }
 
-export function BulkImportDialog({ open, onOpenChange, endpoint, entityLabel, exampleCSV }: BulkImportDialogProps) {
+export function BulkImportDialog({ 
+  open, 
+  onOpenChange, 
+  endpoint, 
+  entityLabel, 
+  exampleCSV,
+  showDuplicateOptions = false 
+}: BulkImportDialogProps) {
   const [csvText, setCsvText] = useState("");
   const [preview, setPreview] = useState<{ headers: string[]; rows: Record<string, string>[] } | null>(null);
   const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState<{ created: number; errors: string[] } | null>(null);
+  const [duplicateAction, setDuplicateAction] = useState<"merge" | "skip">("merge");
+  const [result, setResult] = useState<{ created: number; updated?: number; skipped?: number; errors: string[] } | null>(null);
 
   function handlePreview() {
     const parsed = parseCSV(csvText);
@@ -49,10 +58,18 @@ export function BulkImportDialog({ open, onOpenChange, endpoint, entityLabel, ex
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: preview.rows }),
+        body: JSON.stringify({ 
+          rows: preview.rows, 
+          duplicateAction: showDuplicateOptions ? duplicateAction : undefined 
+        }),
       });
       const data = await res.json();
-      setResult({ created: data.created ?? 0, errors: data.errors ?? [] });
+      setResult({ 
+        created: data.created ?? 0, 
+        updated: data.updated, 
+        skipped: data.skipped, 
+        errors: data.errors ?? [] 
+      });
     } catch (e) {
       setResult({ created: 0, errors: [(e as Error).message] });
     } finally {
@@ -94,9 +111,24 @@ export function BulkImportDialog({ open, onOpenChange, endpoint, entityLabel, ex
 
         {preview && !result && (
           <div className="space-y-3 py-2">
-            <p className="text-sm text-muted-foreground">
-              {preview.rows.length} row(s) parsed. Review and confirm.
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {preview.rows.length} row(s) parsed. Review and confirm.
+              </p>
+              {showDuplicateOptions && (
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-semibold text-muted-foreground">Duplicates:</label>
+                  <select 
+                    value={duplicateAction} 
+                    onChange={(e) => setDuplicateAction(e.target.value as any)}
+                    className="rounded-lg border border-lines bg-white p-1 text-xs text-ink outline-none"
+                  >
+                    <option value="merge">Merge (Overwrite)</option>
+                    <option value="skip">Skip (Keep existing)</option>
+                  </select>
+                </div>
+              )}
+            </div>
             <div className="max-h-60 overflow-auto rounded-md border">
               <Table>
                 <TableHeader>
@@ -129,9 +161,21 @@ export function BulkImportDialog({ open, onOpenChange, endpoint, entityLabel, ex
 
         {result && (
           <div className="space-y-3 py-2">
-            <p className="text-sm">
-              Created: <strong>{result.created}</strong>
-            </p>
+            <div className="space-y-1">
+              <p className="text-sm">
+                Created: <strong>{result.created}</strong>
+              </p>
+              {result.updated !== undefined && (
+                <p className="text-sm">
+                  Updated/Merged: <strong>{result.updated}</strong>
+                </p>
+              )}
+              {result.skipped !== undefined && (
+                <p className="text-sm">
+                  Skipped: <strong>{result.skipped}</strong>
+                </p>
+              )}
+            </div>
             {result.errors.length > 0 && (
               <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
                 <p className="mb-1 text-sm font-medium text-destructive">Errors</p>
@@ -153,3 +197,4 @@ export function BulkImportDialog({ open, onOpenChange, endpoint, entityLabel, ex
     </Dialog>
   );
 }
+

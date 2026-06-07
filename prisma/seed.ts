@@ -30,6 +30,17 @@ interface FileData {
 }
 
 async function main() {
+  const adminEmail = "admin@samayak.com";
+  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+  if (!existingAdmin) {
+    const { createHash } = await import("node:crypto");
+    const password = createHash("sha256").update("admin123").digest("hex");
+    await prisma.user.create({
+      data: { name: "Admin", email: adminEmail, password, role: "admin" },
+    });
+    console.log("Created admin user: admin@samayak.com / admin123");
+  }
+
   const existingDept = await prisma.department.findFirst({ where: { shortCode: "CSE" } });
   if (existingDept) {
     console.log("Database already seeded. Skipping.");
@@ -225,17 +236,6 @@ async function main() {
 
   console.log(`  ${totalTimetables} timetables`);
   console.log(`  ${totalSlots} slots`);
-
-  const adminEmail = "admin@samayak.com";
-  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
-  if (!existingAdmin) {
-    const { createHash } = await import("node:crypto");
-    const password = createHash("sha256").update("admin123").digest("hex");
-    await prisma.user.create({
-      data: { name: "Admin", email: adminEmail, password, role: "admin" },
-    });
-    console.log("Created admin user: admin@samayak.com / admin123");
-  }
 
   const counts = {
     departments: await prisma.department.count(),

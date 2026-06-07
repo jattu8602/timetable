@@ -1,8 +1,33 @@
 import { prisma } from "@/lib/prisma";
-import { ParsedTimetable, ParsedCourse, ParsedSlot, ParsedMetadata } from "./parser";
+import { ParsedTimetable } from "./parser";
+
+export interface ImportSummary {
+  departments: { created: number; matched: number };
+  branches: { created: number; matched: number };
+  rooms: { created: number; matched: number };
+  courses: { created: number; matched: number };
+  faculty: { created: number; matched: number };
+  slots: { created: number; matched: number };
+  warnings: string[];
+}
 
 export async function importTimetable(parsed: ParsedTimetable) {
   const { metadata, courses, slots } = parsed;
+
+  const summary: ImportSummary = {
+    departments: { created: 0, matched: 0 },
+    branches: { created: 0, matched: 0 },
+    rooms: { created: 0, matched: 0 },
+    courses: { created: 0, matched: 0 },
+    faculty: { created: 0, matched: 0 },
+    slots: { created: 0, matched: 0 },
+    warnings: [],
+  };
+
+  // 1. Department
+  const existingDept = await prisma.department.findUnique({
+    where: { shortCode: metadata.department },
+  });
 
   const dept = await prisma.department.upsert({
     where: { shortCode: metadata.department },
@@ -10,18 +35,30 @@ export async function importTimetable(parsed: ParsedTimetable) {
     create: { name: metadata.department, shortCode: metadata.department },
   });
 
+  if (existingDept) {
+    summary.departments.matched++;
+  } else {
+    summary.departments.created++;
+  }
+
+  // 2. Branch
   const branchKey = `${metadata.program}|${metadata.branch}`;
   let branch = await prisma.branch.findFirst({
     where: { name: metadata.branch, program: metadata.program, departmentId: dept.id },
   });
-  if (!branch) {
+
+  if (branch) {
+    summary.branches.matched++;
+  } else {
     branch = await prisma.branch.create({
       data: { name: metadata.branch, program: metadata.program, departmentId: dept.id },
     });
+    summary.branches.created++;
   }
 
   const wefDate = metadata.wefDate ? new Date(metadata.wefDate) : new Date();
 
+  // Create Timetable record
   const timetable = await prisma.timetable.create({
     data: {
       institution: metadata.institution,
@@ -34,6 +71,7 @@ export async function importTimetable(parsed: ParsedTimetable) {
     },
   });
 
+  // 3. Courses & Faculty Links
   for (const c of courses) {
     const existingCourse = await prisma.course.findFirst({
       where: {
@@ -46,7 +84,11 @@ export async function importTimetable(parsed: ParsedTimetable) {
     let course;
     if (existingCourse) {
       course = existingCourse;
+      summary.courses.matched++;
     } else {
+      if (c.credits === 0) {
+        summary.warnings.push(`Course ${c.code} (${c.name}) has zero credits.`);
+      }
       course = await prisma.course.create({
         data: {
           code: c.code,
@@ -59,17 +101,28 @@ export async function importTimetable(parsed: ParsedTimetable) {
           departmentId: dept.id,
         },
       });
+      summary.courses.created++;
     }
 
     if (c.teacher && c.teacher !== "TBA") {
       const emailPart = c.teacher.toLowerCase().replace(/[^a-z]/g, ".");
       const email = `${emailPart}@bitmesra.ac.in`;
 
+      const existingFac = await prisma.faculty.findUnique({
+        where: { email },
+      });
+
       const faculty = await prisma.faculty.upsert({
         where: { email },
         update: { name: c.teacher, departmentId: dept.id },
         create: { name: c.teacher, email, departmentId: dept.id },
       });
+
+      if (existingFac) {
+        summary.faculty.matched++;
+      } else {
+        summary.faculty.created++;
+      }
 
       await prisma.courseFaculty.upsert({
         where: { courseId_facultyId: { courseId: course.id, facultyId: faculty.id } },
@@ -79,6 +132,7 @@ export async function importTimetable(parsed: ParsedTimetable) {
     }
   }
 
+  // 4. Slots & Room Mapping
   for (const s of slots) {
     await prisma.timeSlot.create({
       data: {
@@ -89,24 +143,38 @@ export async function importTimetable(parsed: ParsedTimetable) {
         subjectDetails: s.subjectDetails,
       },
     });
+    summary.slots.created++;
 
     const roomNumbers = s.subjectDetails.match(/\b\d{3}[A-Z]?\b/g);
     if (roomNumbers) {
       for (const num of roomNumbers) {
-        await prisma.room.upsert({
+        const existingRoom = await prisma.room.findUnique({
           where: { number_departmentId: { number: num, departmentId: dept.id } },
-          update: {},
-          create: {
-            number: num,
-            name: `Room ${num}`,
-            capacity: 60,
-            type: "classroom",
-            departmentId: dept.id,
-          },
         });
+
+        if (existingRoom) {
+          summary.rooms.matched++;
+        } else {
+          // Flag default room creation warning
+          summary.warnings.push(`Room ${num} was automatically created with a default capacity of 60. Please verify.`);
+          await prisma.room.create({
+            data: {
+              number: num,
+              name: `Room ${num}`,
+              capacity: 60,
+              type: "classroom",
+              departmentId: dept.id,
+            },
+          });
+          summary.rooms.created++;
+        }
       }
     }
   }
 
-  return timetable;
+  return {
+    timetable,
+    summary,
+  };
 }
+

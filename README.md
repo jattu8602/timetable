@@ -16,15 +16,16 @@ Built for the Anugat AI engineering assignment.
 | Font | Figtree | Figtree (via `next/font`) | ✅ |
 | **Database** | **PostgreSQL** | **PostgreSQL (NeonDB serverless)** | ✅ |
 | ORM | Prisma | Prisma v6 | ✅ |
-| **Cache** | **Redis** | **Upstash Redis (REST)** | ✅ |
-| **Job Queue** | **BullMQ** | **❌ Not wired — upload runs synchronously** | ⚠️ |
+| **Cache** | **Redis** | **Upstash Redis (TCP protocol via `rediss://`)** | ✅ |
+| **Job Queue** | **BullMQ** | **Wired & Active (Runs in background via Next.js instrumentation)** | ✅ |
 | Auth | NextAuth.js (credentials, JWT) | NextAuth.js v5 (credentials, JWT) | ✅ |
 | Charts | Recharts | Recharts | ✅ |
-| Container | Docker + Compose | Docker config present, using cloud services | ⚠️ |
+| Container | Docker + Compose | Full stack orchestration ready for local build | ✅ |
 | RBAC | Role-based middleware | proxy.ts with role check + 403 | ✅ |
 | Correlation IDs | End-to-end tracing | Injected in proxy.ts | ✅ |
 | PDF OCR | — | OCR.space + OpenAI gpt-4o-mini | ✅ |
 | PDF text | — | pdf-parse (text PDFs) | ✅ |
+
 
 ---
 
@@ -261,20 +262,48 @@ PDF Upload
 3. Build command: `npx prisma generate && next build`
 4. Deploy
 
-### Docker
+### Docker Setup (Local Offline Stack)
 
-```bash
-docker compose up --build
-```
+To run the entire stack locally in containerized mode (including local PostgreSQL, local Redis, the Next.js app, and the background queue worker):
+
+1. Update your `.env` variables to connect to the internal Docker network services:
+   ```env
+   # PostgreSQL container connection string
+   DATABASE_URL="postgresql://samayak:samayak_secret@postgres:5432/samayak?sslmode=disable"
+   
+   # Redis container connection string (TCP protocol for BullMQ)
+   REDIS_URL="redis://redis:6379"
+   
+   # External API Keys (Required for OCR PDF ingestion)
+   MISTRAL_API_KEY="your-mistral-api-key"
+   OCR_SPACE_API_KEY="your-ocr-space-api-key"
+   OPENAI_API_KEY="your-openai-api-key"
+   ```
+
+2. Run the compose environment:
+   ```bash
+   docker compose up --build
+   ```
+
+3. Initialize the database schema and seed the CSE timetable data inside the running app container:
+   ```bash
+   # Generate database tables
+   docker compose exec app npx prisma db push
+   # Seed CSE timetable data and admin user credentials
+   docker compose exec app npx tsx prisma/seed.ts
+   ```
+
+4. The application is now fully running and accessible at [http://localhost:3000](http://localhost:3000).
 
 ---
 
 ## Built With
 
 - Next.js 16 · TypeScript · Tailwind CSS v4 · shadcn/ui
-- Prisma v6 · PostgreSQL (NeonDB) · Upstash Redis
+- Prisma v6 · PostgreSQL (NeonDB / local Docker) · Upstash Redis / local Redis (BullMQ support)
 - NextAuth.js v5 · Recharts
-- OCR.space · OpenAI gpt-4o-mini
+- OCR.space · OpenAI gpt-4o-mini · Mistral OCR
 - pdfjs-dist · @napi-rs/canvas
 - Figtree · Lucide Icons
 - Docker · Docker Compose
+

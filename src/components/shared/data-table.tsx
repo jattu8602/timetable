@@ -36,6 +36,7 @@ interface DataTableProps<T> {
   bulkImportEndpoint?: string;
   bulkImportLabel?: string;
   bulkImportExample?: string;
+  showDuplicateOptions?: boolean;
 }
 
 export function DataTable<T>({
@@ -53,11 +54,13 @@ export function DataTable<T>({
   bulkImportEndpoint,
   bulkImportLabel,
   bulkImportExample,
+  showDuplicateOptions = false,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [importOpen, setImportOpen] = useState(false);
+
 
   const filtered = searchable
     ? data.filter((item) => {
@@ -92,9 +95,9 @@ export function DataTable<T>({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {searchable && (
-          <div className="relative flex-1 max-w-sm">
+          <div className="relative w-full sm:max-w-sm">
             <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search..."
@@ -104,7 +107,7 @@ export function DataTable<T>({
             />
           </div>
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 max-sm:w-full max-sm:justify-end">
           {bulkImportEndpoint && (
             <>
               <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
@@ -117,6 +120,7 @@ export function DataTable<T>({
                 endpoint={bulkImportEndpoint}
                 entityLabel={addLabel.toLowerCase()}
                 exampleCSV={bulkImportExample || ""}
+                showDuplicateOptions={showDuplicateOptions}
               />
             </>
           )}
@@ -138,7 +142,7 @@ export function DataTable<T>({
                   {col.sortable ? (
                     <button
                       onClick={() => toggleSort(String(col.key))}
-                      className="flex items-center gap-1 font-bold text-muted"
+                      className="flex items-center gap-1 font-bold text-muted-foreground"
                     >
                       {col.label}
                       <ArrowUpDown className="h-3 w-3" />

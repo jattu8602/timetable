@@ -1,91 +1,39 @@
-import { importTimetable } from "@/lib/timetable/importer";
-import { ocrPdf, structureWithMistral } from "@/lib/mistral";
+import { getRedisConnection } from "@/lib/bull";
 
 export interface UploadJob {
   id: string;
   fileName: string;
-  status: "ocr" | "ocr_done" | "structuring" | "completed" | "error";
+  status: "queued" | "parsing" | "integrating" | "completed" | "error";
   text?: string;
   finalTimetableId?: string;
   finalSlotCount?: number;
   finalCourseCount?: number;
   error?: string;
+  summary?: any;
   createdAt: number;
   updatedAt: number;
 }
 
-const jobs = new Map<string, UploadJob>();
+const redis = getRedisConnection();
 
-export function createJob(fileName: string): string {
-  const id = crypto.randomUUID();
-  jobs.set(id, {
+export async function createJob(id: string, fileName: string): Promise<UploadJob> {
+  const job: UploadJob = {
     id,
     fileName,
-    status: "ocr",
+    status: "queued",
     createdAt: Date.now(),
     updatedAt: Date.now(),
-  });
-  return id;
+  };
+
+  const jobKey = `job:${id}`;
+  await redis.set(jobKey, JSON.stringify(job), "EX", 86400); // Expires in 24 hours
+  return job;
 }
 
-export function getJob(jobId: string): UploadJob | undefined {
-  return jobs.get(jobId);
+export async function getJob(jobId: string): Promise<UploadJob | undefined> {
+  const jobKey = `job:${jobId}`;
+  const data = await redis.get(jobKey);
+  if (!data) return undefined;
+  return JSON.parse(data) as UploadJob;
 }
 
-export async function processOcr(jobId: string, buffer: Buffer) {
-  try {
-    const job = jobs.get(jobId);
-    if (!job) return;
-
-    const text = await ocrPdf(buffer);
-    const current = jobs.get(jobId);
-    if (!current) return;
-
-    current.text = text;
-    current.status = "ocr_done";
-    current.updatedAt = Date.now();
-  } catch (err) {
-    const job = jobs.get(jobId);
-    if (job) {
-      job.status = "error";
-      job.error = err instanceof Error ? err.message : "Unknown error";
-      job.updatedAt = Date.now();
-    }
-  }
-}
-
-export async function analyzeOcrText(jobId: string) {
-  try {
-    const job = jobs.get(jobId);
-    if (!job || !job.text) {
-      throw new Error("No OCR text available");
-    }
-
-    job.status = "structuring";
-    job.updatedAt = Date.now();
-
-    const parsed = await structureWithMistral(job.text);
-
-    if (parsed.slots.length === 0 && parsed.courses.length === 0) {
-      job.status = "error";
-      job.error = "Could not parse a valid timetable from the document.";
-      job.updatedAt = Date.now();
-      return;
-    }
-
-    const timetable = await importTimetable(parsed);
-
-    job.status = "completed";
-    job.finalTimetableId = timetable.id;
-    job.finalSlotCount = parsed.slots.length;
-    job.finalCourseCount = parsed.courses.length;
-    job.updatedAt = Date.now();
-  } catch (err) {
-    const job = jobs.get(jobId);
-    if (job) {
-      job.status = "error";
-      job.error = err instanceof Error ? err.message : "Unknown error";
-      job.updatedAt = Date.now();
-    }
-  }
-}

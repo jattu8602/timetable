@@ -115,7 +115,7 @@ export default function TimetableEditPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => router.push("/timetable")}>
             <ArrowLeft className="h-5 w-5" />
@@ -140,14 +140,14 @@ export default function TimetableEditPage() {
         <table className="w-full min-w-[900px] border-collapse">
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 border-b border-r border-lines bg-canvas-2/80 p-3 text-left text-[11px] font-bold uppercase tracking-[0.05em] text-muted backdrop-blur-sm">
+              <th className="sticky left-0 z-10 border-b border-r border-lines bg-canvas-2/80 p-3 text-left text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground backdrop-blur-sm">
                 Day
               </th>
               {PERIOD_ORDER.map((p) => (
                 <th
                   key={p}
                   className={`border-b border-lines p-3 text-center text-[11px] font-bold uppercase tracking-[0.05em] ${
-                    p === "LUNCH" ? "bg-canvas-2/30 text-muted" : "bg-canvas-2/80 text-muted"
+                    p === "LUNCH" ? "bg-canvas-2/30 text-muted-foreground" : "bg-canvas-2/80 text-muted-foreground"
                   }`}
                 >
                   {p === "LUNCH" ? (

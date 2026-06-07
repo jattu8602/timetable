@@ -11,6 +11,7 @@ import {
   Users,
   FileText,
   LogOut,
+  X,
 } from "lucide-react";
 
 const navItems = [
@@ -22,31 +23,69 @@ const navItems = [
   { href: "/timetable", label: "Class Timetable", icon: FileText },
 ];
 
-export function Sidebar() {
+export function Sidebar({
+  onClose,
+  collapsed = false,
+}: {
+  onClose?: () => void;
+  collapsed?: boolean;
+}) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-full w-[280px] shrink-0 flex-col overflow-hidden rounded-[24px] border border-lines bg-surface shadow-card-md">
-      <div className="flex items-center gap-[11px] px-[16px] pb-[18px] pt-[14px]">
-        <img src="/logo.png" alt="Anugat AI" width={42} height={42} className="rounded-[11px]" />
-        <span className="text-[18px] font-extrabold tracking-[-0.02em] text-ink">Anugat AI</span>
+    <aside className="flex h-full w-full flex-col overflow-hidden rounded-[24px] border border-lines bg-surface shadow-card-md">
+      {/* Sidebar Header (Logo) */}
+      <div
+        className={`flex items-center pb-[18px] pt-[14px] ${
+          collapsed ? "justify-center px-0" : "justify-between px-[16px]"
+        }`}
+      >
+        <div className={`flex items-center gap-[11px] ${collapsed ? "justify-center" : ""}`}>
+          <img
+            src="/logo.png"
+            alt="Anugat AI"
+            width={42}
+            height={42}
+            className="rounded-[11px] shrink-0"
+          />
+          {!collapsed && (
+            <span className="text-[18px] font-extrabold tracking-[-0.02em] text-ink whitespace-nowrap">
+              Anugat AI
+            </span>
+          )}
+        </div>
+        {onClose && !collapsed && (
+          <button
+            onClick={onClose}
+            className="flex items-center justify-center rounded-lg p-1.5 text-ink hover:bg-canvas-2/50 lg:hidden"
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
-      <nav className="flex-1 space-y-[4px] px-[12px]">
+      {/* Navigation Links */}
+      <nav className={`flex-1 space-y-[4px] ${collapsed ? "px-[8px]" : "px-[12px]"}`}>
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-[13px] p-[13px_16px] rounded-[14px] text-[15px] font-semibold transition-all duration-[0.16s] [&>svg]:w-[19px] [&>svg]:h-[19px] [&>svg]:stroke-[2] [&>svg]:fill-none ${
+              title={collapsed ? item.label : undefined}
+              className={`flex items-center rounded-[14px] text-[15px] font-semibold transition-all duration-[0.16s] [&>svg]:w-[19px] [&>svg]:h-[19px] [&>svg]:stroke-[2] [&>svg]:fill-none ${
+                collapsed
+                  ? "justify-center p-[13px] gap-0"
+                  : "p-[13px_16px] gap-[13px]"
+              } ${
                 isActive
                   ? "bg-brand-gradient text-white shadow-card-glow [&>svg]:stroke-current"
                   : "text-ink-soft hover:bg-[#f1f7ff] hover:text-ink [&>svg]:stroke-current"
               }`}
             >
               <item.icon className="shrink-0" />
-              {item.label}
+              {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
             </Link>
           );
         })}
@@ -54,15 +93,22 @@ export function Sidebar() {
 
       <div className="mx-[12px] h-[1px] bg-lines" />
 
-      <div className="p-[12px]">
+      {/* Logout Action */}
+      <div className={collapsed ? "p-[8px]" : "p-[12px]"}>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="flex w-full items-center gap-[12px] rounded-[16px] bg-black p-[14px_18px] text-[15px] font-semibold text-white transition-all hover:bg-[#1c1c22] [&>svg]:h-[18px] [&>svg]:w-[18px] [&>svg]:stroke-white [&>svg]:stroke-[2] [&>svg]:fill-none"
+          title={collapsed ? "Log out" : undefined}
+          className={`flex items-center rounded-[16px] bg-black text-[15px] font-semibold text-white transition-all hover:bg-[#1c1c22] [&>svg]:h-[18px] [&>svg]:w-[18px] [&>svg]:stroke-white [&>svg]:stroke-[2] [&>svg]:fill-none ${
+            collapsed
+              ? "justify-center p-[14px] gap-0"
+              : "w-full p-[14px_18px] gap-[12px]"
+          }`}
         >
           <LogOut className="shrink-0" />
-          Log out
+          {!collapsed && <span className="whitespace-nowrap">Log out</span>}
         </button>
       </div>
     </aside>
   );
 }
+

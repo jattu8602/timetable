@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createJob, getJob, processOcr } from "@/lib/upload-job";
+import { createJob, getJob } from "@/lib/upload-job";
+import { timetableQueue, getRedisConnection } from "@/lib/bull";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,10 +11,17 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    const jobId = crypto.randomUUID();
 
-    const jobId = createJob(file.name);
+    // 1. Store raw PDF buffer bytes in Redis temporarily for worker retrieval
+    const redis = getRedisConnection();
+    await redis.set(`pdf:${jobId}`, buffer, "EX", 3600); // 1 hour expiry
 
-    processOcr(jobId, buffer).catch(console.error);
+    // 2. Initialize job state in Redis (queued status)
+    await createJob(jobId, file.name);
+
+    // 3. Enqueue the task into BullMQ
+    await timetableQueue.add("ingest-pdf", { jobId });
 
     return NextResponse.json({ jobId, fileName: file.name }, { status: 201 });
   } catch (err) {
@@ -28,9 +36,10 @@ export async function GET(req: NextRequest) {
   if (!jobId) {
     return NextResponse.json({ error: "jobId required" }, { status: 400 });
   }
-  const job = getJob(jobId);
+  const job = await getJob(jobId);
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
   return NextResponse.json(job);
 }
+

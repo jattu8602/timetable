@@ -7,7 +7,9 @@ export default auth((req) => {
 
   const publicPaths = ["/login", "/design", "/api/auth", "/api/health"];
 
-  if (publicPaths.some((p) => pathname.startsWith(p))) {
+  // Skip auth checks for public paths and static assets (like logo.png)
+  const isStaticAsset = /\.(?:png|jpg|jpeg|gif|svg|webp|ico|css|js)$/i.test(pathname);
+  if (isStaticAsset || publicPaths.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
@@ -27,5 +29,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|css|js)$).*)"],
 };

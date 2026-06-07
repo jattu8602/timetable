@@ -3,6 +3,7 @@ import { Figtree } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { ToastProvider } from "@/lib/toast";
+import { CustomCursor } from "@/components/shared/custom-cursor";
 
 const figtreeSans = Figtree({
   variable: "--font-sans",
@@ -31,7 +32,10 @@ export default function RootLayout({
       </head>
       <body className="min-h-full">
         <SessionProvider>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            <CustomCursor />
+            {children}
+          </ToastProvider>
         </SessionProvider>
       </body>
     </html>

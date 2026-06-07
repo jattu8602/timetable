@@ -3,24 +3,33 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Upload, CheckCircle2, XCircle, Loader2, ArrowRight, Sparkles, FileText } from "lucide-react";
+import { Upload, CheckCircle2, XCircle, Loader2, ArrowRight, FileText, AlertTriangle } from "lucide-react";
 
 interface JobStatus {
   id: string;
   fileName: string;
-  status: "ocr" | "ocr_done" | "structuring" | "completed" | "error";
+  status: "queued" | "parsing" | "integrating" | "completed" | "error";
   text?: string;
   finalTimetableId?: string;
   finalSlotCount?: number;
   finalCourseCount?: number;
   error?: string;
+  summary?: {
+    departments: { created: number; matched: number };
+    branches: { created: number; matched: number };
+    rooms: { created: number; matched: number };
+    courses: { created: number; matched: number };
+    faculty: { created: number; matched: number };
+    slots: { created: number; matched: number };
+    warnings: string[];
+  };
 }
 
 const stageLabels: Record<string, string> = {
-  ocr: "Extracting text from PDF...",
-  ocr_done: "Text extracted",
-  structuring: "Structuring with AI...",
-  completed: "Complete!",
+  queued: "Queued (Waiting for background worker)...",
+  parsing: "Parsing PDF & Running OCR extraction...",
+  integrating: "Structuring timetable with AI & integrating with DB...",
+  completed: "Timetable successfully ingested!",
   error: "Failed",
 };
 
@@ -31,7 +40,6 @@ export default function UploadPage() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [job, setJob] = useState<JobStatus | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -63,47 +71,29 @@ export default function UploadPage() {
     }
   }
 
-  async function handleAnalyze() {
-    if (!jobId) return;
-    setAnalyzing(true);
-    try {
-      const res = await fetch("/api/timetables/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Analysis failed");
-      setAnalyzing(false);
-    }
-  }
-
   useEffect(() => {
     if (!jobId) return;
     const interval = setInterval(async () => {
       const res = await fetch(`/api/timetables/upload/status/${jobId}`);
-      if (!res.ok) { clearInterval(interval); return; }
+      if (!res.ok) {
+        clearInterval(interval);
+        return;
+      }
       const data = await res.json();
       setJob(data);
       if (data.status === "completed" || data.status === "error") {
         clearInterval(interval);
-        setAnalyzing(false);
       }
-    }, 800);
+    }, 1000);
     return () => clearInterval(interval);
   }, [jobId]);
 
-  const isProcessing = job?.status === "ocr" || job?.status === "structuring";
-  const showText = job?.status === "ocr_done";
-
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Upload Timetable</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Upload Timetable PDF</h1>
         <p className="text-sm text-muted-foreground">
-          Upload a PDF to OCR and structure with AI
+          Upload a university timetable PDF to parse, structure, and compute analytics in the background.
         </p>
       </div>
 
@@ -121,25 +111,35 @@ export default function UploadPage() {
             {file ? file.name : "Drop your PDF here"}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {file ? `${(file.size / 1024 / 1024).toFixed(1)} MB` : "or click to browse"}
+            {file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : "or click to browse"}
           </p>
           <input
             ref={inputRef}
             type="file"
             accept=".pdf"
             className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) setFile(f); }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) setFile(f);
+            }}
           />
           {file && (
-            <Button className="mt-6" onClick={(e) => { e.stopPropagation(); handleUpload(); }} disabled={uploading}>
+            <Button
+              className="mt-6"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleUpload();
+              }}
+              disabled={uploading}
+            >
               {uploading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />}
-              {uploading ? "Uploading..." : "Start Processing"}
+              {uploading ? "Uploading PDF..." : "Start Asynchronous Ingestion"}
             </Button>
           )}
         </div>
       ) : (
-        <div className="space-y-4">
-          <div className="rounded-[22px] border border-lines bg-surface p-6 shadow-card-sm">
+        <div className="space-y-6">
+          <div className="rounded-[22px] border border-lines bg-white p-6 shadow-card-sm">
             <div className="flex items-center gap-4">
               {job?.status === "completed" ? (
                 <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-success/10">
@@ -157,61 +157,110 @@ export default function UploadPage() {
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-ink truncate">{job?.fileName}</p>
                 <p className="text-sm text-muted-foreground">
-                  {stageLabels[job?.status ?? "ocr"]}
+                  {stageLabels[job?.status ?? "queued"]}
                 </p>
               </div>
             </div>
 
-            {job?.status === "completed" && (
-              <div className="mt-5 flex items-center justify-between rounded-[14px] bg-success/5 p-4">
-                <div>
-                  <p className="text-sm font-medium text-ink">
-                    {job.finalCourseCount} courses · {job.finalSlotCount} slots
-                  </p>
-                  <p className="text-xs text-muted-foreground">Imported successfully</p>
-                </div>
-                <Button onClick={() => router.push(`/timetable/${job.finalTimetableId}`)}>
-                  Edit <ArrowRight className="ml-1 size-4" />
-                </Button>
-              </div>
-            )}
-
             {job?.status === "error" && (
               <div className="mt-4 rounded-[14px] border border-error/30 bg-error/5 p-4 text-sm text-error">
-                {job.error || "Processing failed."}
+                {job.error || "An error occurred during queue execution."}
               </div>
             )}
           </div>
 
-          {showText && job?.text && (
-            <div className="rounded-[22px] border border-lines bg-surface p-6 shadow-card-sm space-y-4">
-              <div className="flex items-center gap-2">
-                <FileText className="size-5 text-brand-blue" />
-                <h2 className="font-semibold text-ink">Extracted OCR Text</h2>
-              </div>
-              <pre className="max-h-80 overflow-y-auto rounded-[14px] bg-canvas p-4 text-xs leading-relaxed text-ink whitespace-pre-wrap font-mono">
-                {job.text}
-              </pre>
-              <Button
-                className="w-full"
-                onClick={handleAnalyze}
-                disabled={analyzing}
-              >
-                {analyzing ? (
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                ) : (
-                  <Sparkles className="mr-2 size-4" />
+          {/* Import Summary Results */}
+          {job?.status === "completed" && job.summary && (
+            <div className="space-y-6">
+              <div className="rounded-[22px] border border-lines bg-white p-6 shadow-card-sm space-y-4">
+                <h3 className="text-lg font-bold text-ink border-b pb-2">Import Summary</h3>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  <div className="rounded-xl bg-canvas p-3 border">
+                    <p className="text-xs text-muted-foreground font-semibold">Departments</p>
+                    <p className="text-lg font-bold text-ink">
+                      Created: {job.summary.departments.created} · Matched: {job.summary.departments.matched}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-canvas p-3 border">
+                    <p className="text-xs text-muted-foreground font-semibold">Branches</p>
+                    <p className="text-lg font-bold text-ink">
+                      Created: {job.summary.branches.created} · Matched: {job.summary.branches.matched}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-canvas p-3 border">
+                    <p className="text-xs text-muted-foreground font-semibold">Rooms</p>
+                    <p className="text-lg font-bold text-ink">
+                      Created: {job.summary.rooms.created} · Matched: {job.summary.rooms.matched}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-canvas p-3 border">
+                    <p className="text-xs text-muted-foreground font-semibold">Courses</p>
+                    <p className="text-lg font-bold text-ink">
+                      Created: {job.summary.courses.created} · Matched: {job.summary.courses.matched}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-canvas p-3 border">
+                    <p className="text-xs text-muted-foreground font-semibold">Faculty Members</p>
+                    <p className="text-lg font-bold text-ink">
+                      Created: {job.summary.faculty.created} · Matched: {job.summary.faculty.matched}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-canvas p-3 border">
+                    <p className="text-xs text-muted-foreground font-semibold">Time Slots</p>
+                    <p className="text-lg font-bold text-ink">
+                      Created: {job.summary.slots.created}
+                    </p>
+                  </div>
+                </div>
+
+                {job.summary.warnings.length > 0 && (
+                  <div className="rounded-[14px] border border-warning/30 bg-warning/5 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="size-4 text-warning" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-warning">
+                        Warnings & Edge Cases Flagged
+                      </h4>
+                    </div>
+                    <ul className="list-inside list-disc text-xs text-muted-foreground space-y-1">
+                      {job.summary.warnings.map((w, idx) => (
+                        <li key={idx}>{w}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
-                {analyzing ? "Structuring..." : "Analyze & Make Timetable"}
-              </Button>
+
+                <div className="flex justify-end pt-2">
+                  <Button
+                    onClick={() => router.push(`/timetable/${job.finalTimetableId}`)}
+                    className="flex items-center gap-1"
+                  >
+                    View Timetable Grid <ArrowRight className="size-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {job.text && (
+                <div className="rounded-[22px] border border-lines bg-white p-6 shadow-card-sm space-y-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="size-5 text-brand-blue" />
+                    <h4 className="font-semibold text-ink">Parsed Raw Text</h4>
+                  </div>
+                  <pre className="max-h-60 overflow-y-auto rounded-[14px] bg-canvas p-4 text-[11px] leading-relaxed text-ink whitespace-pre-wrap font-mono">
+                    {job.text}
+                  </pre>
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
 
       {error && (
-        <div className="rounded-[14px] border border-error/30 bg-error/5 p-4 text-sm text-error">{error}</div>
+        <div className="rounded-[14px] border border-error/30 bg-error/5 p-4 text-sm text-error">
+          {error}
+        </div>
       )}
     </div>
   );
 }
+

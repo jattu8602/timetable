@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: samayak
       POSTGRES_PASSWORD: samayak_secret
     ports:
-      - "5432:5432"
+      - "5435:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -35,6 +35,10 @@ services:
       redis:
         condition: service_healthy
     env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://samayak:samayak_secret@postgres:5432/samayak?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - AUTH_TRUST_HOST=true
 
 volumes:
   pgdata:
