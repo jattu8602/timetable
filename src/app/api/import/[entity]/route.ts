@@ -3,10 +3,10 @@ import { importQueue } from "@/lib/bull";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { entity: string } }
+  { params }: { params: Promise<{ entity: string }> }
 ) {
   try {
-    const { entity } = params;
+    const { entity } = await params;
     const allowedEntities = ["departments", "rooms", "courses", "faculty", "users"];
     
     if (!allowedEntities.includes(entity)) {
