@@ -88,6 +88,7 @@ export default function TimetableDetailPage() {
   const { toast } = useToast();
 
   const [data, setData] = useState<TimetableDetail | null>(null);
+  const [systemCourses, setSystemCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -120,10 +121,18 @@ export default function TimetableDetailPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch(`/api/timetables/${params.id}`);
+      const [res, coursesRes] = await Promise.all([
+        fetch(`/api/timetables/${params.id}`),
+        fetch("/api/courses")
+      ]);
       if (!res.ok) throw new Error("Failed to load timetable");
       const json = await res.json();
       setData(json);
+
+      if (coursesRes.ok) {
+        const coursesJson = await coursesRes.json();
+        setSystemCourses(coursesJson);
+      }
     } catch (err: any) {
       toast(err.message, "error");
     } finally {
@@ -1032,10 +1041,21 @@ export default function TimetableDetailPage() {
                           <Label>Course Code</Label>
                           <Input
                             placeholder="e.g. IT349"
+                            list="system-course-codes"
                             value={gc.code}
                             onChange={(e) => {
                               const items = [...groupCourses];
-                              items[idx].code = e.target.value;
+                              const newCode = e.target.value;
+                              items[idx].code = newCode;
+                              
+                              const matchedCourse = systemCourses.find((c) => c.code === newCode);
+                              if (matchedCourse) {
+                                if (!items[idx].name) items[idx].name = matchedCourse.name;
+                                const teachers = matchedCourse.faculty?.map((f: any) => f.faculty.name) || [];
+                                if (teachers.length === 1 && (!items[idx].teacher || items[idx].teacher === "TBA")) {
+                                  items[idx].teacher = teachers[0];
+                                }
+                              }
                               setGroupCourses(items);
                             }}
                           />
@@ -1044,6 +1064,7 @@ export default function TimetableDetailPage() {
                           <Label>Teacher Assigned</Label>
                           <Input
                             placeholder="e.g. Dr. Sumit Srivastava"
+                            list={`teachers-${gc.code}`}
                             value={gc.teacher}
                             onChange={(e) => {
                               const items = [...groupCourses];
@@ -1051,6 +1072,13 @@ export default function TimetableDetailPage() {
                               setGroupCourses(items);
                             }}
                           />
+                          {systemCourses.find(c => c.code === gc.code) && (
+                            <datalist id={`teachers-${gc.code}`}>
+                              {systemCourses.find(c => c.code === gc.code)?.faculty?.map((f: any) => (
+                                <option key={f.faculty.id} value={f.faculty.name} />
+                              ))}
+                            </datalist>
+                          )}
                         </div>
                       </div>
                       <div className="space-y-1">
@@ -1085,8 +1113,23 @@ export default function TimetableDetailPage() {
                   <Input
                     id="course-code"
                     placeholder="e.g. CS24211"
+                    list="system-course-codes"
                     value={courseForm.code}
-                    onChange={(e) => setCourseForm({ ...courseForm, code: e.target.value })}
+                    onChange={(e) => {
+                      const newCode = e.target.value;
+                      setCourseForm(prev => {
+                        const next = { ...prev, code: newCode };
+                        const matchedCourse = systemCourses.find((c) => c.code === newCode);
+                        if (matchedCourse) {
+                          if (!next.name) next.name = matchedCourse.name;
+                          const teachers = matchedCourse.faculty?.map((f: any) => f.faculty.name) || [];
+                          if (teachers.length === 1 && (!next.teacher || next.teacher === "TBA")) {
+                            next.teacher = teachers[0];
+                          }
+                        }
+                        return next;
+                      });
+                    }}
                   />
                 </div>
 
@@ -1105,9 +1148,17 @@ export default function TimetableDetailPage() {
                   <Input
                     id="course-teacher"
                     placeholder="e.g. Dr. Saikat Chakraborty"
+                    list={`teachers-${courseForm.code}`}
                     value={courseForm.teacher}
                     onChange={(e) => setCourseForm({ ...courseForm, teacher: e.target.value })}
                   />
+                  {systemCourses.find(c => c.code === courseForm.code) && (
+                    <datalist id={`teachers-${courseForm.code}`}>
+                      {systemCourses.find(c => c.code === courseForm.code)?.faculty?.map((f: any) => (
+                        <option key={f.faculty.id} value={f.faculty.name} />
+                      ))}
+                    </datalist>
+                  )}
                 </div>
               </>
             )}
@@ -1128,6 +1179,12 @@ export default function TimetableDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Global Datalist for all unique course codes across the system */}
+      <datalist id="system-course-codes">
+        {Array.from(new Set(systemCourses.map((c) => c.code))).map((code) => (
+          <option key={code} value={code as string} />
+        ))}
+      </datalist>
     </div>
   );
 }

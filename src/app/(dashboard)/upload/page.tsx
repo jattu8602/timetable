@@ -172,7 +172,7 @@ export default function UploadPage() {
                 </p>
                 {job?.status !== "completed" && job?.status !== "error" && (
                   <p className="text-xs text-brand-blue font-semibold mt-1">
-                    Processing time: {seconds}s (Estimated: ~20s total)
+                    Processing time: {seconds}s (Estimated: ~2-3 minutes)
                   </p>
                 )}
               </div>
