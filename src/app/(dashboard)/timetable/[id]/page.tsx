@@ -33,6 +33,7 @@ import {
   Move,
 } from "lucide-react";
 import { useToast } from "@/lib/toast";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 
 interface TimeSlot {
   id: string;
@@ -105,6 +106,8 @@ export default function TimetableDetailPage() {
 
   // Scoped course modal states
   const [courseOpen, setCourseOpen] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<{ id: string, code: string } | null>(null);
+  const [deleteCourseConfirmOpen, setDeleteCourseConfirmOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<ScopedCourse | null>(null);
   const [courseForm, setCourseForm] = useState({
     code: "",
@@ -524,15 +527,23 @@ export default function TimetableDetailPage() {
     }
   }
 
-  async function handleDeleteCourse(courseId: string, courseCode: string) {
-    if (!confirm(`Are you sure you want to delete course ${courseCode}?`)) return;
+  function handleDeleteCourseClick(courseId: string, courseCode: string) {
+    setCourseToDelete({ id: courseId, code: courseCode });
+    setDeleteCourseConfirmOpen(true);
+  }
+
+  async function executeDeleteCourse() {
+    if (!courseToDelete) return;
     try {
-      const res = await fetch(`/api/courses?id=${courseId}`, { method: "DELETE" });
+      const res = await fetch(`/api/courses?id=${courseToDelete.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete course");
-      toast(`Course ${courseCode} deleted`, "success");
+      toast(`Course ${courseToDelete.code} deleted`, "success");
       fetchData();
     } catch (err: any) {
       toast(err.message, "error");
+    } finally {
+      setDeleteCourseConfirmOpen(false);
+      setCourseToDelete(null);
     }
   }
 
@@ -857,7 +868,14 @@ export default function TimetableDetailPage() {
                     const teachers = isGroup ? course.teacher.split(" / ") : [course.teacher];
                     const shortNames = course.shortName ? (isGroup ? course.shortName.split(" / ") : [course.shortName]) : [];
                     
-                    const courseTokenToMatch = course.shortName || course.code;
+                    let courseTokenToMatch = course.shortName;
+                    if (!courseTokenToMatch && course.name.includes('(')) {
+                      // Extract short name from parentheses e.g. "Compiler Design (CD)" -> "CD"
+                      const match = course.name.match(/\(([^)]+)\)/);
+                      if (match) courseTokenToMatch = match[1].trim();
+                    }
+                    if (!courseTokenToMatch) courseTokenToMatch = course.code;
+
                     const isRowHovered = hoveredCourseToken && (
                       courseTokenToMatch === hoveredCourseToken ||
                       courseTokenToMatch.includes(hoveredCourseToken) ||
@@ -867,8 +885,8 @@ export default function TimetableDetailPage() {
                     return (
                       <tr 
                         key={course.id} 
-                        className={`border-b last:border-0 hover:bg-canvas/50 transition-colors ${
-                          isRowHovered ? "bg-[#256199]/10 outline outline-2 outline-[#256199] outline-offset-[-2px] z-10 relative shadow-sm" : ""
+                        className={`border-b last:border-0 transition-colors ${
+                          isRowHovered ? "bg-[#f1f7ff] shadow-[inset_4px_0_0_0_#256199]" : "hover:bg-canvas/50"
                         }`}
                         onMouseEnter={() => setHoveredCourseToken(courseTokenToMatch)}
                         onMouseLeave={() => setHoveredCourseToken(null)}
@@ -922,7 +940,7 @@ export default function TimetableDetailPage() {
                               <Edit2 className="size-3.5" />
                             </button>
                             <button
-                              onClick={() => handleDeleteCourse(course.id, course.code)}
+                              onClick={() => handleDeleteCourseClick(course.id, course.code)}
                               className="p-1 hover:text-error"
                             >
                               <Trash2 className="size-3.5" />
@@ -1318,6 +1336,15 @@ export default function TimetableDetailPage() {
           <option key={code} value={code as string} />
         ))}
       </datalist>
+
+      <ConfirmDialog
+        open={deleteCourseConfirmOpen}
+        onOpenChange={setDeleteCourseConfirmOpen}
+        title="Delete Course"
+        description={`Are you sure you want to delete course ${courseToDelete?.code}?`}
+        confirmLabel="Delete"
+        onConfirm={executeDeleteCourse}
+      />
     </div>
   );
 }

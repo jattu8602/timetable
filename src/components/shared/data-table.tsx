@@ -20,7 +20,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ArrowUpDown, Plus, Pencil, Trash2, RotateCcw, Upload, Search } from "lucide-react";
+import { ArrowUpDown, Plus, Pencil, Trash2, RotateCcw, Upload, Search, Download } from "lucide-react";
 import { BulkImportDialog } from "@/components/shared/bulk-import-dialog";
 
 export interface Column<T> {
@@ -78,6 +78,7 @@ export function DataTable<T>({
   const [depWarningOpen, setDepWarningOpen] = useState(false);
   const [depWarningMsg, setDepWarningMsg] = useState("");
   const [pendingAction, setPendingAction] = useState<() => void>();
+  const [sampleMenuOpen, setSampleMenuOpen] = useState(false);
 
   const filtered = searchable
     ? data.filter((item) => {
@@ -146,6 +147,21 @@ export function DataTable<T>({
     setBulkConfirmOpen(false);
   }
 
+  const handleDownloadSample = (type: 'csv' | 'excel') => {
+    if (!bulkImportExample) return;
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const content = type === 'excel' ? [bom, bulkImportExample] : [bulkImportExample];
+    const blob = new Blob(content, { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `sample_${addLabel.toLowerCase().replace(/\s+/g, '_')}_import.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setSampleMenuOpen(false);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -169,6 +185,31 @@ export function DataTable<T>({
           )}
           {bulkImportEndpoint && (
             <>
+              <div className="relative inline-block text-left">
+                <Button variant="outline" size="sm" onClick={() => setSampleMenuOpen(!sampleMenuOpen)}>
+                  <Download className="mr-1 h-4 w-4" />
+                  Download Sample
+                </Button>
+                {sampleMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setSampleMenuOpen(false)} />
+                    <div className="absolute right-0 mt-2 w-48 rounded-[16px] shadow-card-md bg-surface border border-lines z-50 overflow-hidden py-1.5 animate-in fade-in zoom-in-95 duration-100">
+                      <button 
+                        onClick={() => handleDownloadSample('excel')} 
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-[#f1f7ff] text-ink font-medium transition-colors"
+                      >
+                        Download for Excel
+                      </button>
+                      <button 
+                        onClick={() => handleDownloadSample('csv')} 
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-[#f1f7ff] text-ink font-medium transition-colors"
+                      >
+                        Download as CSV
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
               <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
                 <Upload className="mr-1 h-4 w-4" />
                 {bulkImportLabel || "Import"}

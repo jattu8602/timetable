@@ -96,7 +96,7 @@ export function Sidebar({
       <div className="mx-[12px] h-[1px] bg-lines" />
 
       {/* Logout Action */}
-      <div className={collapsed ? "p-[8px]" : "p-[12px]"}>
+      <div className={collapsed ? "p-[8px] flex justify-center" : "p-[12px]"}>
         <button
           onClick={() => setShowLogoutPopup(true)}
           title={collapsed ? "Log out" : undefined}

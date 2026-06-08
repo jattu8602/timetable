@@ -48,9 +48,27 @@ cd timetable
 ```
 
 ### 2. Environment Variables
-Create a `.env` file at the root. You can safely copy the dummy keys if you just want to run it:
-```bash
-cp .env.local.txt .env
+Create a `.env` file at the root directory and copy the following variables into it:
+
+```env
+# Local Database (Docker)
+DATABASE_URL="postgresql://samayak:samayak_secret@localhost:5435/samayak?schema=public"
+
+# Local Redis (Docker)
+REDIS_URL="redis://localhost:6379"
+
+# NextAuth Configuration
+NEXTAUTH_SECRET="samayak-dev-secret-change-in-production"
+NEXTAUTH_URL="http://localhost:3000"
+AUTH_SECRET="samayak-dev-secret-change-in-production"
+
+# AI Pipeline
+MISTRAL_API_KEY="your_mistral_api_key" # Sent via Gmail, or get from console.mistral.ai
+
+# ImageKit Storage
+IMAGEKIT_PUBLIC_KEY="your_imagekit_public_key"
+IMAGEKIT_PRIVATE_KEY="your_imagekit_private_key" # Sent via Gmail
+IMAGEKIT_URL_ENDPOINT="your_imagekit_endpoint"
 ```
 
 ### 3. Start the Stack
@@ -69,6 +87,9 @@ docker-compose exec app npx tsx prisma/seed.ts
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 - **Email:** `admin@samayak.com`
 - **Password:** `admin123`
+
+### 6. Upload Sample Data
+If you want sample data to test the bulk upload feature in the website's import sections (Departments, Rooms, Courses, Faculty, Users), you can use the CSV files located in the [`data_exports/`](./data_exports) directory as a reference or upload them directly.
 
 ---
 
