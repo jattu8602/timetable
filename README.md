@@ -70,17 +70,29 @@ IMAGEKIT_PRIVATE_KEY="your_imagekit_private_key" # Sent via Gmail
 IMAGEKIT_URL_ENDPOINT="your_imagekit_endpoint"
 ```
 
-### 3. Start the Stack
-```bash
-docker-compose up -d --build
-```
-*(This will download the Postgres/Redis images and build the Next.js production image)*
+### 3. Start the Stack (Lightweight Native Mode)
+Running Next.js inside Docker can crash machines with low RAM (especially Mac OS). For a flawless, blazing-fast experience, we run **only the lightweight databases** in Docker and the Next.js app natively on your machine.
 
-### 4. Seed the Database (Required once)
+Ensure **Docker Desktop** (or OrbStack/Colima) is open and running, then execute:
+
 ```bash
-docker-compose exec app npx prisma db push
-docker-compose exec app npx tsx prisma/seed.ts
+# 1. Install dependencies on your local machine
+npm install
+
+# 2. Start ONLY the Postgres and Redis databases in the background
+docker-compose up -d postgres redis
+
+# 3. Initialize the database schema
+npx prisma db push
+
+# 4. Seed the default admin credentials
+npx tsx prisma/seed.ts
+
+# 5. Start the Next.js app natively
+npm run dev
 ```
+
+*(This perfectly bypasses Docker Desktop networking bugs and memory crashes by using your machine's native power for Next.js).*
 
 ### 5. Access the Application
 Open [http://localhost:3000](http://localhost:3000) in your browser.
