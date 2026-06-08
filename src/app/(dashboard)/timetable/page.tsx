@@ -21,6 +21,7 @@ interface Timetable {
   pdfUrl?: string | null;
   imageUrl?: string | null;
   originalFileName?: string | null;
+  status: "DRAFT" | "PUBLISHED";
 }
 
 export default function TimetableListPage() {
@@ -99,10 +100,17 @@ export default function TimetableListPage() {
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="font-semibold text-ink">
-                    {tt.department?.shortCode ?? "—"} — {tt.branch?.name ?? "—"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-ink">
+                      {tt.department?.shortCode ?? "—"} — {tt.branch?.name ?? "—"}
+                    </p>
+                    {tt.status === "DRAFT" ? (
+                      <span className="inline-flex items-center rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning-foreground">Draft</span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success-foreground">Published</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
                     {tt.semesterName} · {tt.academicTerm}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">

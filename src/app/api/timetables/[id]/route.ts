@@ -52,3 +52,23 @@ export async function GET(
     courses: formattedCourses,
   });
 }
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const body = await req.json();
+  const { status } = body;
+
+  if (!status || !["DRAFT", "PUBLISHED"].includes(status)) {
+    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  }
+
+  const updated = await prisma.timetable.update({
+    where: { id },
+    data: { status },
+  });
+
+  return NextResponse.json(updated);
+}

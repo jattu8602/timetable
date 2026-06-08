@@ -142,18 +142,23 @@ export async function importTimetable(parsed: ParsedTimetable, originalFileName?
 
   // 4. Slots & Room Mapping
   for (const s of slots) {
+    const rawDetails = s.subjectDetails || "";
     await prisma.timeSlot.create({
       data: {
         timetableId: timetable.id,
         dayOfWeek: s.dayOfWeek,
         periodName: s.periodName,
         timeRange: s.timeRange,
-        subjectDetails: s.subjectDetails,
+        // Clean up "Subject / Room" into "Subject (Room)"
+        subjectDetails: rawDetails
+          .replace(/\s*\/\s*([A-Za-z0-9\s]+?)$/, ' ($1)')
+          // if it's already properly wrapped or doesn't have a slash, it remains mostly untouched.
+          .trim(),
       },
     });
     summary.slots.created++;
 
-    const roomNumbers = s.subjectDetails.match(/\b\d{3}[A-Z]?\b/g);
+    const roomNumbers = rawDetails.match(/\b\d{3}[A-Z]?\b/g);
     if (roomNumbers) {
       for (const num of roomNumbers) {
         const existingRoom = await prisma.room.findUnique({

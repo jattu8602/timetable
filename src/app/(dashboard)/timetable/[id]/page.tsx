@@ -58,6 +58,7 @@ interface TimetableDetail {
   institution: string;
   academicTerm: string;
   program: string;
+  status: "DRAFT" | "PUBLISHED";
   imageUrl?: string | null;
   pdfUrl?: string | null;
   semesterName: string;
@@ -506,6 +507,23 @@ export default function TimetableDetailPage() {
     }
   }
 
+  async function togglePublish() {
+    if (!data) return;
+    const newStatus = data.status === "DRAFT" ? "PUBLISHED" : "DRAFT";
+    try {
+      const res = await fetch(`/api/timetables/${data.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error("Failed to update status");
+      toast(`Timetable marked as ${newStatus}`, "success");
+      fetchData();
+    } catch (err: any) {
+      toast(err.message, "error");
+    }
+  }
+
   async function handleDeleteCourse(courseId: string, courseCode: string) {
     if (!confirm(`Are you sure you want to delete course ${courseCode}?`)) return;
     try {
@@ -516,6 +534,35 @@ export default function TimetableDetailPage() {
     } catch (err: any) {
       toast(err.message, "error");
     }
+  }
+
+  // Hover Tooltip Helper
+  function getSlotTooltipContent(subjectDetails: string) {
+    if (!data?.courses) return null;
+    
+    // Find all courses where shortName or code is in the subjectDetails
+    const matchedCourses = data.courses.filter(c => {
+      if (c.shortName && subjectDetails.includes(c.shortName)) return true;
+      if (c.code && subjectDetails.includes(c.code)) return true;
+      return false;
+    });
+
+    if (matchedCourses.length === 0) return null;
+
+    return (
+      <div className="flex flex-col gap-2 w-full">
+        {matchedCourses.map(c => (
+          <div key={c.id} className="border-b border-white/20 pb-2 mb-1 last:border-0 last:pb-0 last:mb-0 text-left">
+            <p className="font-bold text-white text-xs leading-tight">{c.name}</p>
+            <div className="text-[10px] text-white/80 flex items-center justify-between mt-1">
+              <span className="truncate pr-2">{c.teacher || "TBA"}</span>
+              <span className="bg-white/20 px-1.5 py-0.5 rounded text-white font-mono whitespace-nowrap">{c.credits} Cr</span>
+            </div>
+            <p className="text-[9px] text-white/60 uppercase tracking-wider mt-0.5">{c.type || c.courseType || "CORE"}</p>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   // Dynamic grid renderer supporting spans
@@ -606,7 +653,7 @@ export default function TimetableDetailPage() {
               onDragStart={(e) => handleDragStart(e, slot.id)}
               onDragEnd={handleDragEnd}
               onClick={() => handleCellClick(day, period)}
-              className="group cursor-grab active:cursor-grabbing w-full min-h-[50px] flex flex-col justify-center rounded-lg p-1.5 transition-colors hover:bg-[#256199]/5"
+              className="group cursor-grab active:cursor-grabbing w-full min-h-[50px] flex flex-col justify-center rounded-lg p-1.5 transition-colors hover:bg-[#256199]/5 relative"
             >
               {/* Drag handle hint */}
               <div className="absolute right-1.5 top-1.5 opacity-0 group-hover:opacity-40 transition-opacity">
@@ -620,13 +667,25 @@ export default function TimetableDetailPage() {
                   {slot.subjectDetails.match(/\(([^)]+)\)/)?.[1] || ""}
                 </p>
               )}
+
+              {/* Advanced Rich Tooltip Popover */}
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 w-56 bg-[#256199] text-white p-3 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none scale-95 group-hover:scale-100 origin-bottom flex flex-col items-start ring-1 ring-white/10">
+                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-[#256199] rotate-45 ring-1 ring-white/10 border-t-0 border-l-0"></div>
+                <div className="w-full relative z-10">
+                  {getSlotTooltipContent(slot.subjectDetails) || (
+                    <p className="text-xs text-white/90 leading-snug text-center w-full font-medium">
+                      {slot.subjectDetails}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           ) : (
             <button
               onClick={() => handleCellClick(day, period)}
-              className="w-full min-h-[50px] flex items-center justify-center text-[10px] text-muted-foreground/30 hover:text-[#256199] hover:bg-[#256199]/5 rounded-lg select-none"
+              className="w-full min-h-[50px] flex items-center justify-center bg-transparent hover:bg-[#256199]/5 rounded-lg select-none transition-colors"
             >
-              —
+              <span className="opacity-0 hover:opacity-100 text-[#256199]/40 text-[10px]">+</span>
             </button>
           )}
         </td>
@@ -665,16 +724,20 @@ export default function TimetableDetailPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Toggle Publish State */}
+          <Button 
+            variant={data.status === "DRAFT" ? "default" : "secondary"} 
+            size="sm" 
+            onClick={togglePublish}
+            className={data.status === "DRAFT" ? "bg-success hover:bg-success/90 text-white" : ""}
+          >
+            {data.status === "DRAFT" ? "Publish Timetable" : "Revert to Draft"}
+          </Button>
+
           {/* Toggle PDF preview panel */}
           <Button variant="outline" size="sm" onClick={() => setShowPdfRef(!showPdfRef)}>
             {showPdfRef ? <EyeOff className="mr-1 h-4 w-4" /> : <Eye className="mr-1 h-4 w-4" />}
             {showPdfRef ? "Hide Paper PDF" : "Toggle PDF Reference"}
-          </Button>
-
-          {/* AI recognition triggers */}
-          <Button onClick={handleAnalyzeWithAI} disabled={analyzing} size="sm" className="bg-brand-gradient">
-            {analyzing ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Sparkles className="mr-1 h-4 w-4" />}
-            {analyzing ? `Analyzing... ${analysisSeconds}s (Est: ~35s)` : "Analyze Layout with AI"}
           </Button>
         </div>
       </div>

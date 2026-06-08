@@ -27,7 +27,7 @@ async function getAnalytics() {
   const totalCourses = await prisma.course.count({ where: { deletedAt: null } });
   const totalFaculty = await prisma.faculty.count({ where: { deletedAt: null } });
   const totalSlots = await prisma.timeSlot.count();
-  const totalTimetables = await prisma.timetable.count({ where: { deletedAt: null } });
+  const totalTimetables = await prisma.timetable.count({ where: { deletedAt: null, status: "PUBLISHED" } });
 
   const rooms = await prisma.room.findMany({
     where: { deletedAt: null },
@@ -36,7 +36,7 @@ async function getAnalytics() {
   const roomCount = rooms.length;
 
   const timetables = await prisma.timetable.findMany({
-    where: { deletedAt: null },
+    where: { deletedAt: null, status: "PUBLISHED" },
     include: { slots: true },
   });
 

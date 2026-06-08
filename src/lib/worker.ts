@@ -42,6 +42,7 @@ export const timetableWorker = new Worker<JobData>(
       }
 
       console.log(`[worker] Running OCR for job ${jobId}...`);
+      const { ocrPdf, structureWithMistral } = await import("./mistral");
       const text = await ocrPdf(buffer, jobData.fileName);
 
       // Update text in job state
@@ -54,10 +55,11 @@ export const timetableWorker = new Worker<JobData>(
       const parsed = await structureWithMistral(text);
 
       if (parsed.slots.length === 0 && parsed.courses.length === 0) {
-        throw new Error("Could not parse any courses or slots from the uploaded timetable PDF.");
+        throw new Error("Could not parse any courses or slots from the uploaded timetable PDF/Image.");
       }
 
       console.log(`[worker] Importing structured timetable into DB for job ${jobId}...`);
+      const { importTimetable } = await import("./timetable/importer");
       const { timetable, summary } = await importTimetable(parsed, jobData.fileName);
 
       // Render first page of PDF to PNG and upload both to ImageKit

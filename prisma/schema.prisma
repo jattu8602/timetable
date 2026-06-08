@@ -144,6 +144,12 @@ model Timetable {
   pdfUrl           String?
   imageUrl         String?
   originalFileName String?
+  status           TimetableStatus @default(DRAFT)
+}
+
+enum TimetableStatus {
+  DRAFT
+  PUBLISHED
 }
 
 model TimeSlot {
