@@ -10,28 +10,27 @@ Built for the Anugat AI engineering assignment.
 
 | Layer | Specified (Document) | Implemented | Match |
 |---|---|---|---|
-| Framework | Next.js (App Router) | Next.js 16 (App Router, Turbopack) | ✅ |
+| Framework | Next.js (App Router) | Next.js (App Router, Turbopack) | ✅ |
 | Language | TypeScript (strict) | TypeScript (strict) | ✅ |
 | Styling | Tailwind + shadcn/ui | Tailwind v4 + shadcn/ui | ✅ |
 | Font | Figtree | Figtree (via `next/font`) | ✅ |
-| **Database** | **PostgreSQL** | **PostgreSQL (NeonDB serverless)** | ✅ |
+| **Database** | **PostgreSQL** | **PostgreSQL (Local Docker Container)** | ✅ |
 | ORM | Prisma | Prisma v6 | ✅ |
-| **Cache** | **Redis** | **Upstash Redis (TCP protocol via `rediss://`)** | ✅ |
+| **Cache** | **Redis** | **Redis (Local Docker Container)** | ✅ |
 | **Job Queue** | **BullMQ** | **Wired & Active (Runs in background via Next.js instrumentation)** | ✅ |
 | Auth | NextAuth.js (credentials, JWT) | NextAuth.js v5 (credentials, JWT) | ✅ |
 | Charts | Recharts | Recharts | ✅ |
 | Container | Docker + Compose | Full stack orchestration ready for local build | ✅ |
 | RBAC | Role-based middleware | proxy.ts with role check + 403 | ✅ |
 | Correlation IDs | End-to-end tracing | Injected in proxy.ts | ✅ |
-| PDF OCR | — | OCR.space + OpenAI gpt-4o-mini | ✅ |
-| PDF text | — | pdf-parse (text PDFs) | ✅ |
+| PDF Parsing/AI | — | Mistral AI | ✅ |
 
 
 ---
 
 ## Live Demo
 
-**URL:** _[deployed link]_
+**URL:** [https://timetable-pz7j.onrender.com/](https://timetable-pz7j.onrender.com/)
 
 **Demo Login:** `admin@samayak.com` / `admin123`
 
